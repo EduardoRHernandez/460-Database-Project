@@ -1,7 +1,35 @@
+import java.lang.reflect.Member;
 import java.sql.*;
 import java.util.*;
 
 public class Program4 {
+    private static final String QUERY1_STRING = 
+            "SELECT" + 
+                "LP.orderId," + 
+                "LP.totalSessions," +
+                "LP.remainingSessions," + 
+                "LP.pricePerSession," + 
+                "L.lessonId," + 
+                "L.ageType," + 
+                "L.lessonType," + 
+                "L.durationType," + 
+                "L.startTime," + 
+                "E.firstName AS instructorFirstName," + 
+                "E.lastName AS instructorLastName" + 
+            "FROM" + 
+                "LessonPurchase LP" + 
+            "JOIN" + 
+                "Lesson L ON LP.lessonId = L.lessonId" + 
+            "JOIN" + 
+                "Instructor I ON L.instructorId = I.instructorId" + 
+            "JOIN" +
+                "Employee E ON I.instructorId = E.employeeId" + 
+            "JOIN" + 
+                "Member M ON LP.memberId = M.memberId" + 
+            "WHERE" + 
+                "M.firstName = 'Olivia' AND M.lastName = 'Robinson';";
+
+
     private static final String QUERY2_STRING = "SELECT * FROM ( " +
             "SELECT 'LIFT RIDE' AS SECTION, ll.passId AS REF_ID, ll.liftName AS DETAIL1, TO_CHAR(ll.liftLotDate, 'YYYY-MM-DD') AS DETAIL2, NULL AS DETAIL3 FROM LiftLog ll "
             +
