@@ -82,11 +82,6 @@ public class Program4 {
         }
     }
 
-    // Placeholder
-    private static void runQuery1(PreparedStatement stmt) throws SQLException {
-        System.out.println("\n=== Query 1: ===");
-    }
-
     private static void printQuery2Results(ResultSet rs) throws SQLException {
         System.out.println("\n==== Combined Report ====");
         while (rs.next()) {
@@ -119,6 +114,32 @@ public class Program4 {
                     trailName,
                     category,
                     liftName);
+        }
+    }
+
+    private static void runQuery1(PreparedStatement stmt) throws SQLException {
+        System.out.println("\n=== Query 1: ===");
+        System.out.printf("%-10s %-15s %-15s %-15s %-10s %-10s %-10s %-10s %-10s %-20s %-20s%n",
+                "Order ID", "Total Sessions", "Remaining Sessions", "Price/Session", "Lesson ID", "Age Type",
+                "Lesson Type", "Duration Type", "Start Time", "Instructor First Name", "Instructor Last Name");
+        System.out.println("-".repeat(150));
+
+        try (PreparedStatement statement = getConnection("eduardoh12", "a3769").prepareStatement(QUERY1_STRING);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                System.out.printf("%-10d %-15d %-15d $%-14.2f %-10d %-10s %-10s %-10s %s %20s %20s%n",
+                        rs.getInt("orderId"),
+                        rs.getInt("totalSessions"),
+                        rs.getInt("remainingSessions"),
+                        rs.getDouble("pricePerSession"),
+                        rs.getInt("lessonId"),
+                        rs.getString("ageType"),
+                        rs.getString("lessonType"),
+                        rs.getString("durationType"),
+                        rs.getString("startTime"),
+                        rs.getString("instructorFirstName"),
+                        rs.getString("instructorLastName"));
+            }
         }
     }
 
@@ -155,7 +176,6 @@ public class Program4 {
 
                 switch (choice) {
                     case "1":
-                        // Placeholder
                         runQuery1(null);
                         break;
 
