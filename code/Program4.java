@@ -188,6 +188,17 @@ public class Program4 {
 
     }
 
+    private static boolean passExists(Connection conn, int passId) throws SQLException {
+        String passCheckSql = "SELECT 1 FROM skipass WHERE passid = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(passCheckSql)) {
+            stmt.setInt(1, passId);
+            try (ResultSet rs = stmt.executeQuery()){
+                return rs.next();
+            }
+        }
+
+    }
+
     private static void updateMember(Connection conn, Scanner input) throws SQLException {
         System.out.println("Enter member id to update");
         String memberIdString = input.nextLine();
@@ -405,6 +416,150 @@ public class Program4 {
 
     }
 
+    private static void addSkiPass(Connection conn, Scanner input) throws SQLException {
+
+        System.out.println("Member ID:");
+        String memberIdString = input.nextLine();
+
+        int memberId;
+        try {
+            memberId = Integer.parseInt(memberIdString);
+        } catch (NumberFormatException e){
+            System.out.println("Invalid member id. Must enter a number");
+            return;
+        }
+        
+        if (!memberExists(conn, memberId)){
+            System.out.println("Invalid member id. Member does not exist");
+            return;
+        }
+
+        System.out.println("Enter expiration date (YYYY-MM-DD):");
+        String expDate = input.nextLine();
+
+        System.out.print("Select pass type (A. 1 day, B. 2 day, C. 4 day, D. season)");
+        System.out.println("Enter A-D:");
+        String passType = input.nextLine();
+        switch (passType){
+            case "A":
+                passType = "1 day";
+                break;
+            case "B":
+                passType = "2 day";
+                break;
+            case "C":
+                passType = "4 day";
+                break;
+            case "D":
+                passType = "season";
+                break;
+            default:
+                System.out.println("Invalid pass type. Press enter to continue");
+                input.nextLine();
+                return;
+        }
+
+
+        String sql = "INSERT INTO SkiPass (memberId, purchaseDate, expirationDate, totalUses, type) " + 
+            " VALUES (?, SYSDATE, TO_DATE(?, 'YYYY-MM-DD'), ?, ?)";
+        try (PreparedStatement stmt = conn.prepareStatement(sql,new String[] { "passId" })) {
+            stmt.setInt(1, memberId);
+            stmt.setString(2, expDate);
+            stmt.setInt(3, 0);
+            stmt.setString(4, passType);
+            int rowsAffected = stmt.executeUpdate();
+            if (rowsAffected > 0){
+                try(ResultSet rs = stmt.getGeneratedKeys()){
+                    if (rs.next()){
+                        System.out.println("Successfully generated new pass. Pass id -> " + rs.getInt(1));
+                    }
+                }
+            } else{
+                System.out.println("Failed to add new ski pass");
+            }
+            // System.out.println(rowsAffected > 0 ? "Member added successfully." : "Failed to add member.");
+        }
+
+    }
+
+    private static void updateSkiPass(Connection conn, Scanner input) throws SQLException {
+
+        System.out.println("Ski Pass Id:");
+        String passIdString = input.nextLine();
+
+        int passId;
+        try {
+            passId = Integer.parseInt(passIdString);
+        } catch (NumberFormatException e){
+            System.out.println("Invalid pass id. Must enter a number");
+            return;
+        }
+        
+        if (!passExists(conn, passId)){
+            System.out.println("Invalid pass id. Pass does not exist");
+            return;
+        }
+
+        String getTotalUses = "SELECT totalUses FROM SkiPass WHERE passId = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(getTotalUses)) {
+            stmt.setInt(1, passId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    int uses = rs.getInt("totalUses");
+                    System.out.println("Total uses for pass " + passId + ": " + uses);
+                }
+            }
+        }
+
+        System.out.println("Enter the updated number of total uses:");
+        String newTotalString = input.nextLine();
+
+        int newTotal;
+        try {
+            newTotal = Integer.parseInt(newTotalString);
+        } catch (NumberFormatException e){
+            System.out.println("Invalid total. Must enter a number >= 0");
+            return;
+        }
+
+
+        String updateTotalUses = "UPDATE skipass SET totaluses = ? WHERE passId = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(updateTotalUses)) {
+            stmt.setInt(1, newTotal);
+            stmt.setInt(2, passId);
+
+            int rows = stmt.executeUpdate();
+            if (rows > 0) {
+                System.out.println("Total uses updated successfully.");
+            } else {
+                System.out.println("Could not update total uses.");
+            }
+        }
+
+
+
+            // TEST CODE ONLY. DELETE THIS
+            String query = "SELECT * FROM skipass";
+            try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(query)) {
+                ResultSetMetaData meta = rs.getMetaData();
+                int columnCount = meta.getColumnCount();
+
+                System.out.println("\n=== SkiPass Table ===");
+
+                while (rs.next()) {
+                    System.out.println("-------------------------------");
+                    for (int i = 1; i <= columnCount; i++) {
+                        String colName = meta.getColumnName(i);
+                        String value = rs.getString(i);
+                        System.out.printf("%-20s: %s%n", colName, value);
+                    }
+                }
+
+                System.out.println("-------------------------------");
+            }
+
+    }
+
     private static boolean hasAny(Connection conn, String sql) throws SQLException {
         try (PreparedStatement stmt = conn.prepareStatement(sql)){
             try (ResultSet rs = stmt.executeQuery()) {
@@ -413,6 +568,8 @@ public class Program4 {
         }
 
     }
+
+    
 
 
         
@@ -423,8 +580,8 @@ public class Program4 {
    
 
     public static void main(String[] args) {
-        String username = "eduardoh12";
-        String password = "a3769";
+        String username = "stevengeorge";
+        String password = "a9666";
 
         try {
 			Class.forName("oracle.jdbc.OracleDriver");
@@ -492,6 +649,10 @@ public class Program4 {
                             updateMember(conn, input);
                         case "6":
                             deleteMember(conn, input);
+                        case "7":
+                            addSkiPass(conn, input);
+                        case "8":
+                            updateSkiPass(conn, input);
                         case "10":
                             System.out.println("Goodbye!");
                             return;
