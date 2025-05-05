@@ -1,6 +1,6 @@
 CREATE TABLE Equipment (
     EID NUMBER PRIMARY KEY,                      -- Unique equipment ID
-    RID NUMBER NOT NULL REFERENCES Rental(RID),  -- Associated rental
+    RID NUMBER REFERENCES Rental(RID),  -- Associated rental
     eType VARCHAR2(30),
     eSize VARCHAR2(20),
     eStatus VARCHAR2(20)

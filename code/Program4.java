@@ -3,8 +3,8 @@ import java.sql.*;
 import java.util.*;
 
 public class Program4 {
-    private static final String QUERY1_STRING =
-            "SELECT LP.orderId, LP.totalSessions, LP.remainingSessions, LP.pricePerSession, " +
+    private static final String QUERY1_STRING = "SELECT LP.orderId, LP.totalSessions, LP.remainingSessions, LP.pricePerSession, "
+            +
             "L.lessonId, L.ageType, L.lessonType, L.durationType, L.startTime, " +
             "E.firstName AS instructorFirstName, E.lastName AS instructorLastName " +
             "FROM LessonPurchase LP JOIN Lesson L ON LP.lessonId = L.lessonId " +
@@ -14,9 +14,12 @@ public class Program4 {
             "WHERE M.firstName = 'Olivia' AND M.lastName = 'Robinson';";
 
     private static final String QUERY2_STRING = "SELECT * FROM ( " +
-            "SELECT 'LIFT RIDE' AS SECTION, ll.passId AS REF_ID, ll.liftName AS DETAIL1, TO_CHAR(ll.liftLotDate, 'YYYY-MM-DD') AS DETAIL2, NULL AS DETAIL3 FROM LiftLog ll " +
-            "UNION ALL SELECT 'RENTAL', r.passId, e.eType, e.eSize, r.returnStatus FROM Rental r JOIN Equipment e ON e.RID = r.RID " +
-            "UNION ALL SELECT 'SKIPASS', s.passId, s.type, TO_CHAR(s.purchaseDate, 'YYYY-MM-DD'), TO_CHAR(s.expirationDate, 'YYYY-MM-DD') FROM SkiPass s " +
+            "SELECT 'LIFT RIDE' AS SECTION, ll.passId AS REF_ID, ll.liftName AS DETAIL1, TO_CHAR(ll.liftLotDate, 'YYYY-MM-DD') AS DETAIL2, NULL AS DETAIL3 FROM LiftLog ll "
+            +
+            "UNION ALL SELECT 'RENTAL', r.passId, e.eType, e.eSize, r.returnStatus FROM Rental r JOIN Equipment e ON e.RID = r.RID "
+            +
+            "UNION ALL SELECT 'SKIPASS', s.passId, s.type, TO_CHAR(s.purchaseDate, 'YYYY-MM-DD'), TO_CHAR(s.expirationDate, 'YYYY-MM-DD') FROM SkiPass s "
+            +
             "UNION ALL SELECT 'MEMBER', m.memberId, m.firstName || ' ' || m.lastName, m.phone, m.email FROM Member m " +
             "UNION ALL SELECT 'LIFT', NULL, l.name, l.status, l.difficulty FROM Lift l ) WHERE REF_ID = ? OR REF_ID IS NULL";
 
@@ -35,7 +38,47 @@ public class Program4 {
         return null;
     }
 
-    private static void addLessonPurchase(Connection conn, int orderId, int memberId, int lessonId, int totalSessions, int remainingSessions, double pricePerSession) throws SQLException {
+    private static void insertEquipmentItem(Connection conn, int EID, int RID, String eTpe, String eSize,
+            String eStatus) throws SQLException {
+        String insertSQL = "INSERT INTO Equipment (EID, RID, eType, eSize, eStatus) VALUES (?, ?, ?, ?, ?)";
+        try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
+            pstmt.setInt(1, EID);
+            pstmt.setInt(2, RID);
+            pstmt.setString(3, eTpe);
+            pstmt.setString(4, eSize);
+            pstmt.setString(5, eStatus);
+            int rowsAffected = pstmt.executeUpdate();
+            System.out
+                    .println(rowsAffected > 0 ? "Equipment item added successfully." : "Failed to add equipment item.");
+        }
+    }
+
+    private static void updateEquipmentItem(Connection conn, int EID, String eStatus, int RID, String eType,
+            String eSize) throws SQLException {
+        String updateSQL = "UPDATE Equipment SET eStatus = ? AND eType = ? AND eSize = ? WHERE EID = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(updateSQL)) {
+            pstmt.setString(1, eStatus);
+            pstmt.setString(2, eType);
+            pstmt.setString(3, eSize);
+            pstmt.setInt(4, EID);
+            int rowsAffected = pstmt.executeUpdate();
+            System.out.println(rowsAffected > 0 ? "Equipment item updated successfully."
+                    : "No equipment item found with the provided EID.");
+        }
+    }
+
+    private static void deleteEquipmentItem(Connection conn, int EID) throws SQLException {
+        String deleteSQL = "DELETE FROM Equipment WHERE EID = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(deleteSQL)) {
+            pstmt.setInt(1, EID);
+            int rowsAffected = pstmt.executeUpdate();
+            System.out.println(rowsAffected > 0 ? "Equipment item deleted successfully."
+                    : "No equipment item found with the provided EID.");
+        }
+    }
+
+    private static void addLessonPurchase(Connection conn, int orderId, int memberId, int lessonId, int totalSessions,
+            int remainingSessions, double pricePerSession) throws SQLException {
         String insertSQL = "INSERT INTO LessonPurchase (orderId, memberId, lessonId, totalSessions, remainingSessions, pricePerSession) VALUES (?, ?, ?, ?, ?, ?)";
         try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
             pstmt.setInt(1, orderId);
@@ -45,7 +88,8 @@ public class Program4 {
             pstmt.setInt(5, remainingSessions);
             pstmt.setDouble(6, pricePerSession);
             int rowsAffected = pstmt.executeUpdate();
-            System.out.println(rowsAffected > 0 ? "Lesson purchase added successfully." : "Failed to add lesson purchase.");
+            System.out.println(
+                    rowsAffected > 0 ? "Lesson purchase added successfully." : "Failed to add lesson purchase.");
         }
     }
 
@@ -55,7 +99,8 @@ public class Program4 {
             pstmt.setInt(1, remainingSessions);
             pstmt.setInt(2, orderId);
             int rowsAffected = pstmt.executeUpdate();
-            System.out.println(rowsAffected > 0 ? "Lesson purchase updated successfully." : "No lesson purchase found with the provided orderId.");
+            System.out.println(rowsAffected > 0 ? "Lesson purchase updated successfully."
+                    : "No lesson purchase found with the provided orderId.");
         }
     }
 
@@ -64,7 +109,8 @@ public class Program4 {
         try (PreparedStatement pstmt = conn.prepareStatement(deleteSQL)) {
             pstmt.setInt(1, orderId);
             int rowsAffected = pstmt.executeUpdate();
-            System.out.println(rowsAffected > 0 ? "Lesson purchase deleted successfully." : "No eligible lesson purchase found to delete (must have zero sessions used).");
+            System.out.println(rowsAffected > 0 ? "Lesson purchase deleted successfully."
+                    : "No eligible lesson purchase found to delete (must have zero sessions used).");
         }
     }
 
@@ -72,7 +118,8 @@ public class Program4 {
         System.out.println("\n=== Query 1: ===");
         try (PreparedStatement stmt = conn.prepareStatement(QUERY1_STRING); ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
-                System.out.printf("OrderID: %d, Sessions: %d/%d, Price: $%.2f, LessonID: %d, Age: %s, Type: %s, Duration: %s, Time: %s, Instructor: %s %s\n",
+                System.out.printf(
+                        "OrderID: %d, Sessions: %d/%d, Price: $%.2f, LessonID: %d, Age: %s, Type: %s, Duration: %s, Time: %s, Instructor: %s %s\n",
                         rs.getInt("orderId"), rs.getInt("totalSessions"), rs.getInt("remainingSessions"),
                         rs.getDouble("pricePerSession"), rs.getInt("lessonId"), rs.getString("ageType"),
                         rs.getString("lessonType"), rs.getString("durationType"), rs.getString("startTime"),
@@ -113,7 +160,8 @@ public class Program4 {
                             int remainingSessions = Integer.parseInt(input.nextLine());
                             System.out.print("Enter Price per Session: ");
                             double pricePerSession = Double.parseDouble(input.nextLine());
-                            addLessonPurchase(conn, orderId, memberId, lessonId, totalSessions, remainingSessions, pricePerSession);
+                            addLessonPurchase(conn, orderId, memberId, lessonId, totalSessions, remainingSessions,
+                                    pricePerSession);
                             break;
                         case "2":
                             System.out.print("Enter Order ID to update: ");
@@ -157,16 +205,19 @@ public class Program4 {
                                     while (rs.next()) {
                                         System.out.printf("[%s] ID: %s | %s | %s | %s\n",
                                                 rs.getString("SECTION"), rs.getString("REF_ID"),
-                                                rs.getString("DETAIL1"), rs.getString("DETAIL2"), rs.getString("DETAIL3"));
+                                                rs.getString("DETAIL1"), rs.getString("DETAIL2"),
+                                                rs.getString("DETAIL3"));
                                     }
                                 }
                             }
                             break;
                         case "3":
-                            try (PreparedStatement stmt = conn.prepareStatement(QUERY3_STRING); ResultSet rs = stmt.executeQuery()) {
+                            try (PreparedStatement stmt = conn.prepareStatement(QUERY3_STRING);
+                                    ResultSet rs = stmt.executeQuery()) {
                                 while (rs.next()) {
                                     System.out.printf("Trail: %s, Category: %s, Lift: %s\n",
-                                            rs.getString("trail_name"), rs.getString("category"), rs.getString("lift_name"));
+                                            rs.getString("trail_name"), rs.getString("category"),
+                                            rs.getString("lift_name"));
                                 }
                             }
                             break;
