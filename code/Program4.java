@@ -841,6 +841,301 @@ public class Program4 {
 
     }
 
+    private static void addEquipmentRental(Connection conn, Scanner input) throws SQLException {
+        System.out.println("Enter Ski Pass ID:");
+        String passIdString = input.nextLine();
+
+        int passId;
+        try {
+            passId = Integer.parseInt(passIdString);
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid pass ID. Must enter a number.");
+            return;
+        }
+
+        // Validate that the pass exists and is valid
+        String checkPassSQL = "SELECT 1 FROM SkiPass WHERE passId = ? AND expirationDate >= SYSDATE";
+        try (PreparedStatement checkStmt = conn.prepareStatement(checkPassSQL)) {
+            checkStmt.setInt(1, passId);
+            ResultSet rs = checkStmt.executeQuery();
+            if (!rs.next()) {
+                System.out.println("Error: The ski pass is not valid, has expired, or does not exist.");
+                return;
+            }
+        }
+
+        System.out.println("Enter Equipment ID:");
+        String equipmentIdString = input.nextLine();
+
+        int equipmentId;
+        try {
+            equipmentId = Integer.parseInt(equipmentIdString);
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid equipment ID. Must enter a number.");
+            return;
+        }
+
+        // Check if the equipment is available
+        String checkEquipmentSQL = "SELECT eStatus FROM Equipment WHERE EID = ?";
+        try (PreparedStatement checkStmt = conn.prepareStatement(checkEquipmentSQL)) {
+            checkStmt.setInt(1, equipmentId);
+            ResultSet rs = checkStmt.executeQuery();
+            if (!rs.next()) {
+                System.out.println("Error: Equipment not found.");
+                return;
+            }
+
+            String status = rs.getString("eStatus");
+            if (!status.equalsIgnoreCase("Available")) {
+                System.out.println("Error: The equipment is not available for rental. Current status: " + status);
+                return;
+            }
+        }
+
+        conn.setAutoCommit(false);
+        try {
+            // Create the rental record
+            String insertRentalSQL = "INSERT INTO Rental (passId, rentalDate, returnStatus) VALUES (?, SYSDATE, 'Rented')";
+
+            PreparedStatement pstmt = conn.prepareStatement(insertRentalSQL, new String[] { "RID" });
+            pstmt.setInt(1, passId);
+            pstmt.executeUpdate();
+
+            // Get the generated rental ID
+            ResultSet rs = pstmt.getGeneratedKeys();
+            int rentalId = -1;
+            if (rs.next()) {
+                rentalId = rs.getInt(1);
+
+                // Update the equipment record to link it to this rental
+                String updateEquipmentSQL = "UPDATE Equipment SET RID = ?, eStatus = 'Rented' WHERE EID = ?";
+                PreparedStatement equipPstmt = conn.prepareStatement(updateEquipmentSQL);
+                equipPstmt.setInt(1, rentalId);
+                equipPstmt.setInt(2, equipmentId);
+                int updated = equipPstmt.executeUpdate();
+
+                if (updated == 0) {
+                    System.out.println("Failed to update equipment status.");
+                    conn.rollback();
+                    return;
+                }
+
+                equipPstmt.close();
+
+                System.out.println("Rental record created successfully. Rental ID: " + rentalId);
+            } else {
+                System.out.println("Failed to create rental record - no ID was generated.");
+                conn.rollback();
+                return;
+            }
+
+            rs.close();
+            pstmt.close();
+            conn.commit();
+
+        } catch (SQLException e) {
+            conn.rollback();
+            System.err.println("Error creating rental record: " + e.getMessage());
+            throw e;
+        } finally {
+            conn.setAutoCommit(true);
+        }
+    }
+
+    private static void updateRentalReturn(Connection conn, Scanner input) throws SQLException {
+        System.out.println("Enter Rental ID to update:");
+        String rentalIdString = input.nextLine();
+
+        int rentalId;
+        try {
+            rentalId = Integer.parseInt(rentalIdString);
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid rental ID. Must enter a number.");
+            return;
+        }
+
+        // Check if rental exists and get current status
+        String checkRentalSQL = "SELECT returnStatus FROM Rental WHERE RID = ?";
+        String currentStatus = null;
+
+        try (PreparedStatement checkStmt = conn.prepareStatement(checkRentalSQL)) {
+            checkStmt.setInt(1, rentalId);
+            ResultSet rs = checkStmt.executeQuery();
+
+            if (!rs.next()) {
+                System.out.println("Error: Rental record not found.");
+                return;
+            }
+
+            currentStatus = rs.getString("returnStatus");
+            if ("Returned".equalsIgnoreCase(currentStatus)) {
+                System.out.println("This equipment has already been returned.");
+                return;
+            }
+        }
+
+        conn.setAutoCommit(false);
+        try {
+            // Update the rental status
+            String updateRentalSQL = "UPDATE Rental SET returnStatus = 'Returned' WHERE RID = ?";
+            PreparedStatement pstmt = conn.prepareStatement(updateRentalSQL);
+            pstmt.setInt(1, rentalId);
+            int rowsAffected = pstmt.executeUpdate();
+
+            if (rowsAffected > 0) {
+                // Find the equipment associated with this rental
+                String findEquipmentSQL = "SELECT EID FROM Equipment WHERE RID = ?";
+                PreparedStatement findPstmt = conn.prepareStatement(findEquipmentSQL);
+                findPstmt.setInt(1, rentalId);
+                ResultSet rs = findPstmt.executeQuery();
+
+                if (rs.next()) {
+                    int equipmentId = rs.getInt("EID");
+
+                    // Update equipment status
+                    String updateEquipmentSQL = "UPDATE Equipment SET RID = NULL, eStatus = 'Available' WHERE EID = ?";
+                    PreparedStatement equipPstmt = conn.prepareStatement(updateEquipmentSQL);
+                    equipPstmt.setInt(1, equipmentId);
+                    int equipUpdated = equipPstmt.executeUpdate();
+
+                    if (equipUpdated == 0) {
+                        System.out.println("Failed to update equipment status.");
+                        conn.rollback();
+                        return;
+                    }
+
+                    equipPstmt.close();
+                }
+                rs.close();
+                findPstmt.close();
+
+                // Log the update
+                String logUpdateSQL = "INSERT INTO RentalChangeLog (RID, action, date) VALUES (?, 'Update', SYSDATE)";
+                PreparedStatement logPstmt = conn.prepareStatement(logUpdateSQL);
+                logPstmt.setInt(1, rentalId);
+                logPstmt.executeUpdate();
+                logPstmt.close();
+
+                System.out.println("Rental record updated successfully. Equipment returned.");
+            } else {
+                System.out.println("Failed to update rental record.");
+                conn.rollback();
+                return;
+            }
+
+            pstmt.close();
+            conn.commit();
+
+        } catch (SQLException e) {
+            conn.rollback();
+            System.err.println("Error updating rental record: " + e.getMessage());
+            throw e;
+        } finally {
+            conn.setAutoCommit(true);
+        }
+    }
+
+    private static void deleteRentalRecord(Connection conn, Scanner input) throws SQLException {
+        System.out.println("Enter Rental ID to delete:");
+        String rentalIdString = input.nextLine();
+
+        int rentalId;
+        try {
+            rentalId = Integer.parseInt(rentalIdString);
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid rental ID. Must enter a number.");
+            return;
+        }
+
+        // Check if rental exists and verify it can be deleted
+        String checkRentalSQL = "SELECT returnStatus FROM Rental WHERE RID = ?";
+        String currentStatus = null;
+
+        try (PreparedStatement checkStmt = conn.prepareStatement(checkRentalSQL)) {
+            checkStmt.setInt(1, rentalId);
+            ResultSet rs = checkStmt.executeQuery();
+
+            if (!rs.next()) {
+                System.out.println("Error: Rental record not found.");
+                return;
+            }
+
+            currentStatus = rs.getString("returnStatus");
+            if (!"Rented".equalsIgnoreCase(currentStatus)) {
+                System.out.println(
+                        "Error: Cannot delete rental record as the equipment has already been used or returned.");
+                return;
+            }
+        }
+
+        System.out.println("This will delete a rental record. Are you sure? (y/n)");
+        String confirmation = input.nextLine().trim().toLowerCase();
+        if (!confirmation.equals("y")) {
+            System.out.println("Deletion cancelled.");
+            return;
+        }
+
+        conn.setAutoCommit(false);
+        try {
+            // Find the equipment associated with this rental
+            String findEquipmentSQL = "SELECT EID FROM Equipment WHERE RID = ?";
+            PreparedStatement findPstmt = conn.prepareStatement(findEquipmentSQL);
+            findPstmt.setInt(1, rentalId);
+            ResultSet rs = findPstmt.executeQuery();
+
+            if (rs.next()) {
+                int equipmentId = rs.getInt("EID");
+
+                // Update equipment status to make it available again
+                String updateEquipmentSQL = "UPDATE Equipment SET RID = NULL, eStatus = 'Available' WHERE EID = ?";
+                PreparedStatement equipPstmt = conn.prepareStatement(updateEquipmentSQL);
+                equipPstmt.setInt(1, equipmentId);
+                int equipUpdated = equipPstmt.executeUpdate();
+
+                if (equipUpdated == 0) {
+                    System.out.println("Failed to update equipment status.");
+                    conn.rollback();
+                    return;
+                }
+
+                equipPstmt.close();
+            }
+            rs.close();
+            findPstmt.close();
+
+            // Log the deletion
+            String logDeleteSQL = "INSERT INTO RentalChangeLog (RID, action, date) VALUES (?, 'Delete', SYSDATE)";
+            PreparedStatement logPstmt = conn.prepareStatement(logDeleteSQL);
+            logPstmt.setInt(1, rentalId);
+            logPstmt.executeUpdate();
+            logPstmt.close();
+
+            // Delete the rental record
+            String deleteRentalSQL = "DELETE FROM Rental WHERE RID = ?";
+            PreparedStatement pstmt = conn.prepareStatement(deleteRentalSQL);
+            pstmt.setInt(1, rentalId);
+            int rowsAffected = pstmt.executeUpdate();
+
+            if (rowsAffected > 0) {
+                System.out.println("Rental record deleted successfully.");
+            } else {
+                System.out.println("Failed to delete rental record.");
+                conn.rollback();
+                return;
+            }
+
+            pstmt.close();
+            conn.commit();
+
+        } catch (SQLException e) {
+            conn.rollback();
+            System.err.println("Error deleting rental record: " + e.getMessage());
+            throw e;
+        } finally {
+            conn.setAutoCommit(true);
+        }
+    }
+
     public static void main(String[] args) {
         String username = "eduardoh12";
         String password = "a3769";
@@ -874,7 +1169,10 @@ public class Program4 {
                     System.out.println("10. Add Equipment");
                     System.out.println("11. Update Equipment");
                     System.out.println("12. Delete Equipment");
-                    System.out.println("13. Exit");
+                    System.out.println("13. Add Equipment Rental");
+                    System.out.println("14. Update Equipment Rental (Return)");
+                    System.out.println("15. Delete Equipment Rental");
+                    System.out.println("16. Exit");
                     System.out.print("Select an option: ");
 
                     String choice = input.nextLine();
@@ -958,6 +1256,15 @@ public class Program4 {
                             archiveEquipmentItem(conn, eidDelete);
                             break;
                         case "13":
+                            addEquipmentRental(conn, input);
+                            break;
+                        case "14":
+                            updateRentalReturn(conn, input);
+                            break;
+                        case "15":
+                            deleteRentalRecord(conn, input);
+                            break;
+                        case "16":
                             System.out.println("Goodbye!");
                             return;
                         default:
