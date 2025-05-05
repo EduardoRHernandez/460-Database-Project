@@ -128,6 +128,52 @@ public class Program4 {
         }
     }
     }
+
+    private static void addMember(Connection conn, Scanner input) throws SQLException {
+        String add_member_string = 
+        "INSERT INTO member ( " + 
+        "FIRSTNAME, LASTNAME, PHONE, EMAIL, DOB, " + 
+        "EMGCONTACTFNAME, EMGCONTACTLNAME, EMGCONTACTPHONE ) " + 
+        " VALUES (?, ?, ?, ?, TO_DATE(?, 'YYYY-MM-DD'), ?, ?, ? )";
+
+        System.out.println("First Name:");
+        String firstName = input.nextLine();
+        System.out.println("Last Name:");
+        String lastName = input.nextLine();
+        System.out.println("Phone (XXX-XXX-XXXX):");
+        String phone = input.nextLine();
+        System.out.println("Email:");
+        String email = input.nextLine();
+        System.out.println("Date Of Birth (YYYY-MM-DD):");
+        String dob = input.nextLine();
+        System.out.println("Emergency Contact First Name:");
+        String emFirstName = input.nextLine();
+        System.out.println("Emergency Contact Last Name:");
+        String emLastName = input.nextLine();
+        System.out.println("Emergency Contact Phone (XXX-XXX-XXXX):");
+        String emPhone = input.nextLine();
+
+        try (PreparedStatement stmt = conn.prepareStatement(add_member_string)) {
+            stmt.setString(1, firstName);
+            stmt.setString(2, lastName);
+            stmt.setString(3, phone);
+            stmt.setString(4, email);
+            stmt.setString(5, dob);
+            stmt.setString(6, emFirstName);
+            stmt.setString(7, emLastName);
+            stmt.setString(8, emPhone);
+            int rowsAffected = stmt.executeUpdate();
+            System.out.println(rowsAffected > 0 ? "Member added successfully." : "Failed to add member.");
+        }
+
+    }
+
+
+        
+
+
+    
+
    
 
     public static void main(String[] args) {
@@ -190,6 +236,8 @@ public class Program4 {
                             int deleteOrderId = Integer.parseInt(input.nextLine());
                             deleteLessonPurchase(conn, deleteOrderId);
                             break;
+                        case "4":
+                            addMember(conn, input);
                         case "7":
                             System.out.println("Goodbye!");
                             return;
