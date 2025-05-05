@@ -24,6 +24,11 @@ public class Program4 {
             "FROM Trail t JOIN Lift l ON t.name = l.name " +
             "WHERE t.difficulty = 'intermediate' AND t.status = 'open' AND l.status = 'open' ORDER BY t.name";
 
+    private static final String QUERY4_STRING = "SELECT eq.EID as EquipmentID, eq.ETYPE as EquipmentType, eq.ESIZE as EquipmentSize, eq.ESTATUS as CurrentStatus, " +
+            " log.OLDTYPE,  log.NEWTYPE, log.OLDSIZE, log.NEWSIZE, log.OLDSTATUS, log.NEWSTATUS, TO_CHAR(log.changeDate, 'YYYY-MM-DD HH24:MI:SS') AS ChangeDate " +
+            "FROM EquipmentChangeLog log JOIN Equipment eq ON log.EID = eq.EID WHERE eq.EID = ? ORDER BY log.changeDate DESC";
+
+
     private static Connection getConnection(String username, String password) {
         final String oracleURL = "jdbc:oracle:thin:@aloe.cs.arizona.edu:1521:oracle";
         try {
@@ -95,7 +100,35 @@ public class Program4 {
                 }
             }
         }
-    }    
+    } 
+
+    
+    private static void runQuery4(Connection conn, String eId) throws SQLException {
+        try (PreparedStatement stmt = conn.prepareStatement(QUERY4_STRING)) {
+        stmt.setString(1, eId);
+        try (ResultSet rs = stmt.executeQuery()) {
+            System.out.printf("\nEquipment Change Log For Equipment ID %s\n", eId);
+            while (rs.next()) {
+                
+                System.out.printf("Changed on %-20s: %-10s, %-10s -> %-10s, %-6s->%-6s, %-10s ->%-10s\n",
+                rs.getString("CHANGEDATE"),
+                rs.getString("EQUIPMENTTYPE"),
+                rs.getString("OLDTYPE"),
+                rs.getString("NEWTYPE"),
+                rs.getString("OLDSIZE"),
+                rs.getString("NEWSIZE"),
+                rs.getString("OLDSTATUS"),
+                rs.getString("NEWSTATUS")
+                
+                
+                
+                );
+                
+            }
+        }
+    }
+    }
+   
 
     public static void main(String[] args) {
         String username = "eduardoh12";
@@ -156,13 +189,14 @@ public class Program4 {
                     System.out.println("1. Query 1 - Member Ski Lessons");
                     System.out.println("2. Query 2 - Ski Pass Details");
                     System.out.println("3. Query 3 - Intermediate Trails and Lifts");
-                    System.out.println("4. Exit");
+                    System.out.println("3. Query 4 - Equipment Change Log");
+                    System.out.println("5. Exit");
                     System.out.print("Enter your choice: ");
                     String queryChoice = input.nextLine();
 
                     switch (queryChoice) {
                         case "1":
-                            runQuery1(conn);
+                            runQuery1(conn, input);
                             break;
                         case "2":
                             System.out.print("Enter passId: ");
@@ -186,7 +220,19 @@ public class Program4 {
                                 }
                             }
                             break;
-                        case "4":
+case "4":
+                            System.out.print("Enter equipment id: ");
+                            String eId = input.nextLine();
+                            try{
+                                Integer.parseInt(eId);
+                            } catch (NumberFormatException e){
+                                System.out.println("Invalid equipment id");
+                                return;
+                            }
+                            runQuery4(conn, eId);
+
+                            break;
+                        case "5":
                             System.out.println("Goodbye!");
                             return;
                         default:
