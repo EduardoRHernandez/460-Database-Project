@@ -8,3 +8,8 @@ FROM user_triggers;
 
 SELECT sequence_name, min_value, max_value, increment_by, last_number
 FROM user_sequences;
+
+
+set pagesize 50000
+
+set linesize 500

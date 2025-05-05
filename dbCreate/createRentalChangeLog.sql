@@ -1,6 +1,6 @@
 CREATE TABLE RentalChangeLog (
     RChangeId NUMBER PRIMARY KEY,
-    RID NUMBER UNIQUE NOT NULL REFERENCES Rental(RID),
+    RID NUMBER UNIQUE NOT NULL REFERENCES Rental(RID) ON DELETE CASCADE,
     action VARCHAR2(10) CHECK (action IN ('Update', 'Delete')),
     rentalChangeDate DATE,
     changedBy VARCHAR2(50),

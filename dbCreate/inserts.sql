@@ -108,3 +108,28 @@ INSERT INTO EquipmentChangeLog (
     1, 'Ski Boots', 'Ski Boots', 'Large', 'XL', 'Available', 'Available'
 );
 
+
+
+INSERT INTO Lift (name, status, openTime, closeTime, difficulty, seasonOpenDate)
+VALUES ('Eagle Ridge Express', 'open', TO_DATE('08:00', 'HH24:MI'), TO_DATE('16:00', 'HH24:MI'), 'intermediate', TO_DATE('2024-12-01', 'YYYY-MM-DD'));
+
+INSERT INTO Lift (name, status, openTime, closeTime, difficulty, seasonOpenDate)
+VALUES ('Glacier Summit Lift', 'maintenance', TO_DATE('09:00', 'HH24:MI'), TO_DATE('17:00', 'HH24:MI'), 'expert', TO_DATE('2024-11-25', 'YYYY-MM-DD'));
+
+INSERT INTO Lift (name, status, openTime, closeTime, difficulty, seasonOpenDate)
+VALUES ('Pine Valley Chair', 'closed', TO_DATE('07:30', 'HH24:MI'), TO_DATE('15:30', 'HH24:MI'), 'beginner', TO_DATE('2024-12-10', 'YYYY-MM-DD'));
+
+INSERT INTO Lift (name, status, openTime, closeTime, difficulty, seasonOpenDate)
+VALUES ('Snowfall Connector', 'open', TO_DATE('08:15', 'HH24:MI'), TO_DATE('16:15', 'HH24:MI'), 'intermediate', TO_DATE('2024-12-05', 'YYYY-MM-DD'));
+
+INSERT INTO Lift (name, status, openTime, closeTime, difficulty, seasonOpenDate)
+VALUES ('Bear Claw Express', 'open', TO_DATE('08:00', 'HH24:MI'), TO_DATE('16:00', 'HH24:MI'), 'expert', TO_DATE('2024-11-30', 'YYYY-MM-DD'));
+
+INSERT INTO LiftLog (passId, liftName, liftLogDate)
+VALUES (1, 'Eagle Ridge Express', SYSDATE);
+
+INSERT INTO LiftLog (passId, liftName, liftLogDate)
+VALUES (1, 'Eagle Ridge Express', SYSDATE);
+
+INSERT INTO LiftLog (passId, liftName, liftLogDate)
+VALUES (1, 'Eagle Ridge Express', SYSDATE);
