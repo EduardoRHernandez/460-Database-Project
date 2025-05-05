@@ -450,7 +450,10 @@ public class Program4 {
                     System.out.println("4. Add Member");
                     System.out.println("5. Update Member");
                     System.out.println("6. Delete Member");
-                    System.out.println("7. Exit");
+                    System.out.println("7. Add Ski Pass");
+                    System.out.println("8. Update Ski Pass");
+                    System.out.println("9. Delete Ski Pass");
+                    System.out.println("10. Exit");
                     System.out.print("Select an option: ");
 
                     String choice = input.nextLine();
@@ -489,7 +492,7 @@ public class Program4 {
                             updateMember(conn, input);
                         case "6":
                             deleteMember(conn, input);
-                        case "7":
+                        case "10":
                             System.out.println("Goodbye!");
                             return;
                         default:
@@ -533,7 +536,7 @@ public class Program4 {
                                 }
                             }
                             break;
-case "4":
+                            case "4":
                             System.out.print("Enter equipment id: ");
                             String eId = input.nextLine();
                             try{
