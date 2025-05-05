@@ -131,8 +131,19 @@ public class Program4 {
    
 
     public static void main(String[] args) {
-        String username = "eduardoh12";
-        String password = "a3769";
+        String username = "stevengeorge";
+        String password = "a9666";
+
+        try {
+			Class.forName("oracle.jdbc.OracleDriver");
+		} catch (ClassNotFoundException e) {
+			System.err.println("*** ClassNotFoundException:  " + "Error loading Oracle JDBC driver.  \n"
+					+ "\tPerhaps the driver is not on the Classpath? \n" + "Try this: \n"
+					+ "export CLASSPATH=/usr/lib/oracle/19.8/client64/lib/ojdbc8.jar:${CLASSPATH}");
+
+			System.exit(-1);
+		}
+
 
         try (Connection conn = getConnection(username, password); Scanner input = new Scanner(System.in)) {
             System.out.print("Do you want to edit the database? (y/n): ");
@@ -144,7 +155,10 @@ public class Program4 {
                     System.out.println("1. Add Lesson Purchase");
                     System.out.println("2. Update Lesson Purchase");
                     System.out.println("3. Delete Lesson Purchase");
-                    System.out.println("4. Exit");
+                    System.out.println("4. Add Member");
+                    System.out.println("5. Update Member");
+                    System.out.println("6. Delete Member");
+                    System.out.println("7. Exit");
                     System.out.print("Select an option: ");
 
                     String choice = input.nextLine();
@@ -176,7 +190,7 @@ public class Program4 {
                             int deleteOrderId = Integer.parseInt(input.nextLine());
                             deleteLessonPurchase(conn, deleteOrderId);
                             break;
-                        case "4":
+                        case "7":
                             System.out.println("Goodbye!");
                             return;
                         default:
