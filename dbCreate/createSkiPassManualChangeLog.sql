@@ -1,6 +1,6 @@
 CREATE TABLE SkiPassManualChangeLog (
     PassChangeId    NUMBER PRIMARY KEY,
-    passId          NUMBER NOT NULL REFERENCES SkiPass(passId),
+    passId          NUMBER NOT NULL REFERENCES SkiPass(passId)  ON DELETE CASCADE,
     oldTotalUses    NUMBER NOT NULL,
     newTotalUses    NUMBER NOT NULL,
     changeDate      DATE NOT NULL

@@ -1,10 +1,15 @@
 CREATE TABLE Equipment (
-    EID NUMBER PRIMARY KEY,                      -- Unique equipment ID
-    RID NUMBER NOT NULL REFERENCES Rental(RID),  -- Associated rental
-    eType VARCHAR2(30),
+    EID NUMBER PRIMARY KEY,
+    RID NUMBER REFERENCES Rental(RID) ON DELETE CASCADE,
+    eType VARCHAR2(30) CHECK (
+        eType IN ('Ski Boots', 'Ski Poles', 'Skis', 'Snowboard', 'Helmet')
+    ),
     eSize VARCHAR2(20),
-    eStatus VARCHAR2(20)
+    eStatus VARCHAR2(20) CHECK (
+        eStatus IN ('Available', 'Rented')
+    )
 );
+
 
 
 CREATE SEQUENCE equipment_seq
