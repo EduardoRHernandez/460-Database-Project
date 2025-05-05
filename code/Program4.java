@@ -11,7 +11,7 @@ public class Program4 {
             "JOIN Instructor I ON L.instructorId = I.instructorId " +
             "JOIN Employee E ON I.instructorId = E.employeeId " +
             "JOIN Member M ON LP.memberId = M.memberId " +
-            "WHERE M.firstName = 'Olivia' AND M.lastName = 'Robinson';";
+            "WHERE M.firstName = ? AND M.lastName = ?";
 
     private static final String QUERY2_STRING = "SELECT * FROM ( " +
             "SELECT 'LIFT RIDE' AS SECTION, ll.passId AS REF_ID, ll.liftName AS DETAIL1, TO_CHAR(ll.liftLotDate, 'YYYY-MM-DD') AS DETAIL2, NULL AS DETAIL3 FROM LiftLog ll "
@@ -26,6 +26,12 @@ public class Program4 {
     private static final String QUERY3_STRING = "SELECT t.name AS trail_name, t.category, l.name AS lift_name " +
             "FROM Trail t JOIN Lift l ON t.name = l.name " +
             "WHERE t.difficulty = 'intermediate' AND t.status = 'open' AND l.status = 'open' ORDER BY t.name";
+
+    private static final String QUERY4_STRING = "SELECT eq.EID as EquipmentID, eq.ETYPE as EquipmentType, eq.ESIZE as EquipmentSize, eq.ESTATUS as CurrentStatus, "
+            +
+            " log.OLDTYPE,  log.NEWTYPE, log.OLDSIZE, log.NEWSIZE, log.OLDSTATUS, log.NEWSTATUS, TO_CHAR(log.changeDate, 'YYYY-MM-DD HH24:MI:SS') AS ChangeDate "
+            +
+            "FROM EquipmentChangeLog log JOIN Equipment eq ON log.EID = eq.EID WHERE eq.EID = ? ORDER BY log.changeDate DESC";
 
     private static Connection getConnection(String username, String password) {
         final String oracleURL = "jdbc:oracle:thin:@aloe.cs.arizona.edu:1521:oracle";
@@ -114,23 +120,49 @@ public class Program4 {
         }
     }
 
-    private static void runQuery1(Connection conn) throws SQLException {
+    private static void runQuery1(Connection conn, Scanner input) throws SQLException {
+        System.out.print("Enter member first name: ");
+        String firstName = input.nextLine().trim();
+
+        System.out.print("Enter member last name: ");
+        String lastName = input.nextLine().trim();
+
         System.out.println("\n=== Query 1: ===");
-        try (PreparedStatement stmt = conn.prepareStatement(QUERY1_STRING); ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                System.out.printf(
-                        "OrderID: %d, Sessions: %d/%d, Price: $%.2f, LessonID: %d, Age: %s, Type: %s, Duration: %s, Time: %s, Instructor: %s %s\n",
-                        rs.getInt("orderId"), rs.getInt("totalSessions"), rs.getInt("remainingSessions"),
-                        rs.getDouble("pricePerSession"), rs.getInt("lessonId"), rs.getString("ageType"),
-                        rs.getString("lessonType"), rs.getString("durationType"), rs.getString("startTime"),
-                        rs.getString("instructorFirstName"), rs.getString("instructorLastName"));
+        try (PreparedStatement stmt = conn.prepareStatement(QUERY1_STRING)) {
+            stmt.setString(1, firstName);
+            stmt.setString(2, lastName);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                boolean hasResults = false;
+                while (rs.next()) {
+                    hasResults = true;
+                    System.out.printf(
+                            "OrderID: %d, Sessions: %d/%d, Price: $%.2f, LessonID: %d, Age: %s, Type: %s, Duration: %s, Time: %s, Instructor: %s %s\n",
+                            rs.getInt("orderId"), rs.getInt("totalSessions"), rs.getInt("remainingSessions"),
+                            rs.getDouble("pricePerSession"), rs.getInt("lessonId"), rs.getString("ageType"),
+                            rs.getString("lessonType"), rs.getString("durationType"), rs.getString("startTime"),
+                            rs.getString("instructorFirstName"), rs.getString("instructorLastName"));
+                }
+                if (!hasResults) {
+                    System.out.println("No lessons found for this member.");
+                }
             }
         }
     }
 
     public static void main(String[] args) {
-        String username = "eduardoh12";
-        String password = "a3769";
+        String username = "stevengeorge";
+        String password = "a9666";
+
+        try {
+            Class.forName("oracle.jdbc.OracleDriver");
+        } catch (ClassNotFoundException e) {
+            System.err.println("*** ClassNotFoundException:  " + "Error loading Oracle JDBC driver.  \n"
+                    + "\tPerhaps the driver is not on the Classpath? \n" + "Try this: \n"
+                    + "export CLASSPATH=/usr/lib/oracle/19.8/client64/lib/ojdbc8.jar:${CLASSPATH}");
+
+            System.exit(-1);
+        }
 
         try (Connection conn = getConnection(username, password); Scanner input = new Scanner(System.in)) {
             System.out.print("Do you want to edit the database? (y/n): ");
@@ -142,7 +174,10 @@ public class Program4 {
                     System.out.println("1. Add Lesson Purchase");
                     System.out.println("2. Update Lesson Purchase");
                     System.out.println("3. Delete Lesson Purchase");
-                    System.out.println("4. Exit");
+                    System.out.println("4. Add Member");
+                    System.out.println("5. Update Member");
+                    System.out.println("6. Delete Member");
+                    System.out.println("7. Exit");
                     System.out.print("Select an option: ");
 
                     String choice = input.nextLine();
@@ -175,7 +210,7 @@ public class Program4 {
                             int deleteOrderId = Integer.parseInt(input.nextLine());
                             deleteLessonPurchase(conn, deleteOrderId);
                             break;
-                        case "4":
+                        case "7":
                             System.out.println("Goodbye!");
                             return;
                         default:
@@ -188,13 +223,14 @@ public class Program4 {
                     System.out.println("1. Query 1 - Member Ski Lessons");
                     System.out.println("2. Query 2 - Ski Pass Details");
                     System.out.println("3. Query 3 - Intermediate Trails and Lifts");
-                    System.out.println("4. Exit");
+                    System.out.println("3. Query 4 - Equipment Change Log");
+                    System.out.println("5. Exit");
                     System.out.print("Enter your choice: ");
                     String queryChoice = input.nextLine();
 
                     switch (queryChoice) {
                         case "1":
-                            runQuery1(conn);
+                            runQuery1(conn, input);
                             break;
                         case "2":
                             System.out.print("Enter passId: ");
@@ -222,6 +258,18 @@ public class Program4 {
                             }
                             break;
                         case "4":
+                            System.out.print("Enter equipment id: ");
+                            String eId = input.nextLine();
+                            try {
+                                Integer.parseInt(eId);
+                            } catch (NumberFormatException e) {
+                                System.out.println("Invalid equipment id");
+                                return;
+                            }
+                            runQuery4(conn, eId);
+
+                            break;
+                        case "5":
                             System.out.println("Goodbye!");
                             return;
                         default:
