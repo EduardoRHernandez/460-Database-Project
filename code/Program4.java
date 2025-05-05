@@ -945,9 +945,9 @@ public class Program4 {
                             String equipmentUpdate = input.nextLine();
                             String[] partsUpdate = equipmentUpdate.split(",");
                             int eidUpdate = Integer.parseInt(partsUpdate[0].trim());
-                            String etypeUpdate = partsUpdate[2].trim();
-                            String esizeUpdate = partsUpdate[3].trim();
-                            String estatusUpdate = partsUpdate[4].trim();
+                            String etypeUpdate = partsUpdate[1].trim();
+                            String esizeUpdate = partsUpdate[2].trim();
+                            String estatusUpdate = partsUpdate[3].trim();
                             updateEquipmentItem(conn, eidUpdate, estatusUpdate, etypeUpdate, esizeUpdate);
                             break;
                         case "12":
