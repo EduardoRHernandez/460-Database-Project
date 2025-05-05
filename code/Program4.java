@@ -128,11 +128,303 @@ public class Program4 {
         }
     }
     }
+
+    private static void addMember(Connection conn, Scanner input) throws SQLException {
+        String add_member_string = 
+        "INSERT INTO member ( " + 
+        "FIRSTNAME, LASTNAME, PHONE, EMAIL, DOB, " + 
+        "EMGCONTACTFNAME, EMGCONTACTLNAME, EMGCONTACTPHONE ) " + 
+        " VALUES (?, ?, ?, ?, TO_DATE(?, 'YYYY-MM-DD'), ?, ?, ? )";
+
+        System.out.println("First Name:");
+        String firstName = input.nextLine();
+        System.out.println("Last Name:");
+        String lastName = input.nextLine();
+        System.out.println("Phone (XXX-XXX-XXXX):");
+        String phone = input.nextLine();
+        System.out.println("Email:");
+        String email = input.nextLine();
+        System.out.println("Date Of Birth (YYYY-MM-DD):");
+        String dob = input.nextLine();
+        System.out.println("Emergency Contact First Name:");
+        String emFirstName = input.nextLine();
+        System.out.println("Emergency Contact Last Name:");
+        String emLastName = input.nextLine();
+        System.out.println("Emergency Contact Phone (XXX-XXX-XXXX):");
+        String emPhone = input.nextLine();
+
+        try (PreparedStatement stmt = conn.prepareStatement(add_member_string,new String[] { "memberId" })) {
+            stmt.setString(1, firstName);
+            stmt.setString(2, lastName);
+            stmt.setString(3, phone);
+            stmt.setString(4, email);
+            stmt.setString(5, dob);
+            stmt.setString(6, emFirstName);
+            stmt.setString(7, emLastName);
+            stmt.setString(8, emPhone);
+            int rowsAffected = stmt.executeUpdate();
+            if (rowsAffected > 0){
+                try(ResultSet rs = stmt.getGeneratedKeys()){
+                    if (rs.next()){
+                        System.out.println("Successfully generated new member. Member id -> " + rs.getInt(1));
+                    }
+                }
+            } else{
+                System.out.println("Failed to add member");
+            }
+            // System.out.println(rowsAffected > 0 ? "Member added successfully." : "Failed to add member.");
+        }
+
+    }
+
+    private static boolean memberExists(Connection conn, int memberId) throws SQLException {
+        String memberCheckSql = "SELECT 1 FROM Member WHERE MemberId = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(memberCheckSql)) {
+            stmt.setInt(1, memberId);
+            try (ResultSet rs = stmt.executeQuery()){
+                return rs.next();
+            }
+        }
+
+    }
+
+    private static void updateMember(Connection conn, Scanner input) throws SQLException {
+        System.out.println("Enter member id to update");
+        String memberIdString = input.nextLine();
+        int memberId;
+        try {
+            memberId = Integer.parseInt(memberIdString);
+        } catch (NumberFormatException e){
+            System.out.println("Invalid member id. Must enter a number");
+            return;
+        }
+        
+
+        if (!memberExists(conn, memberId)){
+            System.out.println("Invalid member id. Member does not exist");
+            return;
+        } else{
+
+
+            System.out.println("Which field would you like to edit?");
+            System.out.println("1. First Name \n2. Last Name \n3. Phone Number \n4. Email \n5. Date of Birth \n6. Emergency Contact Name \n7. Emergency Contact Phone \n8. Exit");
+            System.out.println("Enter a number (1-8)");
+            String choice = input.nextLine();
+            String toPrint = "Hope this is initialized";
+            String field = null;
+            String newVal1;
+            String newVal2;
+            int inputCase;
+            switch (choice){
+                case "1":
+                    toPrint = "Enter updated first name: ";
+                    inputCase = 1;
+                    field = "FIRSTNAME";
+                    break;
+                case "2":
+                    toPrint = "Enter updated last name: ";
+                    inputCase = 1;
+                    field = "LASTNAME";
+                    break;
+                case "3":
+                    toPrint = "Enter updated phone number (XXX-XXX-XXXX): ";
+                    inputCase = 1;
+                    field = "PHONE";
+                    break;
+                case "4":
+                    toPrint = "Enter updated email: ";
+                    inputCase = 1;
+                    field = "EMAIL";
+                    break;
+                case "5":
+                    inputCase = 2;
+                    break;
+                case "6":
+                    inputCase = 3;
+                    break;
+                case "7":
+                    toPrint = "Enter updated phone: ";
+                    inputCase = 1;
+                    field = "EMGCONTACTPHONE";
+                    break ;
+                case "8":
+                    return;
+                default:
+                    System.out.println("Invalid choice. Press enter to continue");
+                    input.nextLine();
+                    return;
+            }
+            
+            String editMemberSql; // = "UPDATE Member SET " + field + " = ? WHERE MemberId = ?";
+
+            if (inputCase == 1){
+                System.out.println(toPrint);
+                newVal1 = input.nextLine();
+                editMemberSql = "UPDATE Member SET " + field + "= ? WHERE MemberId = ?";
+                try (PreparedStatement stmt = conn.prepareStatement(editMemberSql)) {
+                    stmt.setString(1, newVal1);
+                    stmt.setInt(2, memberId);
+                    int rows = stmt.executeUpdate();
+                    System.out.println(rows > 0 ? "Member updated successfully." : "Update failed.");
+   
+                    
+                }
+            } else if (inputCase == 2){
+                System.out.println("Enter the updated date of birth (YYYY-MM-DD): ");
+                newVal1 = input.nextLine();
+                editMemberSql = "UPDATE Member SET dob = TO_DATE(?, 'YYYY-MM-DD') WHERE MemberId = ?";
+                try (PreparedStatement stmt = conn.prepareStatement(editMemberSql)) {
+                    stmt.setString(1, newVal1);
+                    stmt.setInt(2, memberId);
+                    int rows = stmt.executeUpdate();
+                    System.out.println(rows > 0 ? "Member updated successfully." : "Update failed.");
+                    
+                }
+            } else if (inputCase == 3){
+                System.out.println("Enter the updated emergency contact first name ");
+                newVal1 = input.nextLine();
+                System.out.println("Enter the updated emergency contact last name ");
+                newVal2 = input.nextLine();
+                editMemberSql = "UPDATE Member SET emgContactFName = ?, emgContactLName = ? WHERE MemberId = ?";
+                try (PreparedStatement stmt = conn.prepareStatement(editMemberSql)) {
+                    stmt.setString(1, newVal1);
+                    stmt.setString(2, newVal2);
+                    stmt.setInt(3, memberId);
+                    int rows = stmt.executeUpdate();
+                    System.out.println(rows > 0 ? "Member updated successfully." : "Update failed.");
+                    
+                }
+            }
+
+            // TEST CODE ONLY. DELETE THIS
+            String query = "SELECT * FROM Member";
+            try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(query)) {
+                ResultSetMetaData meta = rs.getMetaData();
+                int columnCount = meta.getColumnCount();
+
+                System.out.println("\n=== Member Table ===");
+
+                while (rs.next()) {
+                    System.out.println("-------------------------------");
+                    for (int i = 1; i <= columnCount; i++) {
+                        String colName = meta.getColumnName(i);
+                        String value = rs.getString(i);
+                        System.out.printf("%-20s: %s%n", colName, value);
+                    }
+                }
+
+                System.out.println("-------------------------------");
+            }
+        }
+
+
+
+    }
+
+    private static void deleteMember(Connection conn, Scanner input) throws SQLException {
+        System.out.println("Enter member id to delete");
+        String memberIdString = input.nextLine();
+        int memberId;
+        try {
+            memberId = Integer.parseInt(memberIdString);
+        } catch (NumberFormatException e){
+            System.out.println("Invalid member id. Must enter a number");
+            return;
+        }
+        
+
+        if (!memberExists(conn, memberId)){
+            System.out.println("Invalid member id. Member does not exist");
+            return;
+        } else{
+
+            boolean unableToReturn = false;
+
+            if (hasAny(conn,
+                "SELECT 1 FROM skipass WHERE memberId = " + memberId + " AND EXPIRATIONDATE >= SYSDATE")){
+                System.out.println("Active ski pass(es) present. Please delete or use them before deleting account");
+                unableToReturn = true;
+            }
+
+            if (hasAny(conn,
+                "SELECT 1 FROM lessonpurchase WHERE memberId = " + memberId + " AND remainingSessions > 0")){
+                System.out.println("Active lesson purchase(s) present. Please delete or use them before deleting account");
+                unableToReturn = true;
+            }
+
+            if (hasAny(conn,
+                "SELECT 1 FROM Rental r JOIN SKIPASS s ON r.passid = s.passid WHERE s.memberId = " + memberId + " AND r.returnStatus = 'Rented'")){
+                System.out.println("Active rental(s) present. Please delete or use them before deleting account");
+                unableToReturn = true;
+            }
+
+            if (unableToReturn){
+                System.out.println("Unable to delete account yet. Press enter to continue");
+                input.nextLine();
+                return;
+
+            } else{
+                System.out.println("Are you sure you want to delete your account. This action is final");
+                System.out.println("Press 'y' to permanently delete your account");
+                System.out.println("Press 'n' to cancel");
+                String selection = input.nextLine();
+                if (selection.compareTo("y") == 0){
+                    String deleteMemberSql = "delete from member where memberid = ?";
+                    try (PreparedStatement stmt = conn.prepareStatement(deleteMemberSql)) {
+                        stmt.setInt(1, memberId);
+                        int rows = stmt.executeUpdate();
+                        System.out.println(rows > 0 ? "Membership successfully deleted" : "Deletion failed.");
+                }
+                } else{
+                    return;
+                }
+            }
+
+            // TEST CODE ONLY. DELETE THIS
+            // String query = "SELECT * FROM Member";
+            // try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(query)) {
+            //     ResultSetMetaData meta = rs.getMetaData();
+            //     int columnCount = meta.getColumnCount();
+
+            //     System.out.println("\n=== Member Table ===");
+
+            //     while (rs.next()) {
+            //         System.out.println("-------------------------------");
+            //         for (int i = 1; i <= columnCount; i++) {
+            //             String colName = meta.getColumnName(i);
+            //             String value = rs.getString(i);
+            //             System.out.printf("%-20s: %s%n", colName, value);
+            //         }
+            //     }
+
+            //     System.out.println("-------------------------------");
+            // }
+        }
+
+
+
+    }
+
+    private static boolean hasAny(Connection conn, String sql) throws SQLException {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)){
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next();
+        }
+        }
+
+    }
+
+
+        
+
+
+    
+
    
 
     public static void main(String[] args) {
-        String username = "stevengeorge";
-        String password = "a9666";
+        String username = "eduardoh12";
+        String password = "a3769";
 
         try {
 			Class.forName("oracle.jdbc.OracleDriver");
@@ -190,6 +482,13 @@ public class Program4 {
                             int deleteOrderId = Integer.parseInt(input.nextLine());
                             deleteLessonPurchase(conn, deleteOrderId);
                             break;
+                        case "4":
+                            addMember(conn, input);
+                            break;
+                        case "5":
+                            updateMember(conn, input);
+                        case "6":
+                            deleteMember(conn, input);
                         case "7":
                             System.out.println("Goodbye!");
                             return;
