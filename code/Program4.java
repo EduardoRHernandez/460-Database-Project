@@ -321,6 +321,99 @@ public class Program4 {
 
     }
 
+    private static void deleteMember(Connection conn, Scanner input) throws SQLException {
+        System.out.println("Enter member id to delete");
+        String memberIdString = input.nextLine();
+        int memberId;
+        try {
+            memberId = Integer.parseInt(memberIdString);
+        } catch (NumberFormatException e){
+            System.out.println("Invalid member id. Must enter a number");
+            return;
+        }
+        
+
+        if (!memberExists(conn, memberId)){
+            System.out.println("Invalid member id. Member does not exist");
+            return;
+        } else{
+
+            boolean unableToReturn = false;
+
+            if (hasAny(conn,
+                "SELECT 1 FROM skipass WHERE memberId = " + memberId + " AND EXPIRATIONDATE >= SYSDATE")){
+                System.out.println("Active ski pass(es) present. Please delete or use them before deleting account");
+                unableToReturn = true;
+            }
+
+            if (hasAny(conn,
+                "SELECT 1 FROM lessonpurchase WHERE memberId = " + memberId + " AND remainingSessions > 0")){
+                System.out.println("Active lesson purchase(s) present. Please delete or use them before deleting account");
+                unableToReturn = true;
+            }
+
+            if (hasAny(conn,
+                "SELECT 1 FROM Rental r JOIN SKIPASS s ON r.passid = s.passid WHERE s.memberId = " + memberId + " AND r.returnStatus = 'Rented'")){
+                System.out.println("Active rental(s) present. Please delete or use them before deleting account");
+                unableToReturn = true;
+            }
+
+            if (unableToReturn){
+                System.out.println("Unable to delete account yet. Press enter to continue");
+                input.nextLine();
+                return;
+
+            } else{
+                System.out.println("Are you sure you want to delete your account. This action is final");
+                System.out.println("Press 'y' to permanently delete your account");
+                System.out.println("Press 'n' to cancel");
+                String selection = input.nextLine();
+                if (selection.compareTo("y") == 0){
+                    String deleteMemberSql = "delete from member where memberid = ?";
+                    try (PreparedStatement stmt = conn.prepareStatement(deleteMemberSql)) {
+                        stmt.setInt(1, memberId);
+                        int rows = stmt.executeUpdate();
+                        System.out.println(rows > 0 ? "Membership successfully deleted" : "Deletion failed.");
+                }
+                } else{
+                    return;
+                }
+            }
+
+            // TEST CODE ONLY. DELETE THIS
+            // String query = "SELECT * FROM Member";
+            // try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(query)) {
+            //     ResultSetMetaData meta = rs.getMetaData();
+            //     int columnCount = meta.getColumnCount();
+
+            //     System.out.println("\n=== Member Table ===");
+
+            //     while (rs.next()) {
+            //         System.out.println("-------------------------------");
+            //         for (int i = 1; i <= columnCount; i++) {
+            //             String colName = meta.getColumnName(i);
+            //             String value = rs.getString(i);
+            //             System.out.printf("%-20s: %s%n", colName, value);
+            //         }
+            //     }
+
+            //     System.out.println("-------------------------------");
+            // }
+        }
+
+
+
+    }
+
+    private static boolean hasAny(Connection conn, String sql) throws SQLException {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)){
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next();
+        }
+        }
+
+    }
+
 
         
 
@@ -330,8 +423,8 @@ public class Program4 {
    
 
     public static void main(String[] args) {
-        String username = "stevengeorge";
-        String password = "a9666";
+        String username = "eduardoh12";
+        String password = "a3769";
 
         try {
 			Class.forName("oracle.jdbc.OracleDriver");
@@ -394,6 +487,8 @@ public class Program4 {
                             break;
                         case "5":
                             updateMember(conn, input);
+                        case "6":
+                            deleteMember(conn, input);
                         case "7":
                             System.out.println("Goodbye!");
                             return;
