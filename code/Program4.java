@@ -1,4 +1,3 @@
-import java.lang.reflect.Member;
 import java.sql.*;
 import java.util.*;
 import java.time.LocalDate;
@@ -60,27 +59,90 @@ public class Program4 {
         }
     }
 
-    private static void updateEquipmentItem(Connection conn, int EID, String eStatus, int RID, String eType,
+    private static void updateEquipmentItem(Connection conn, int EID, int RID, String eStatus, String eType,
             String eSize) throws SQLException {
-        String updateSQL = "UPDATE Equipment SET eStatus = ? AND eType = ? AND eSize = ? WHERE EID = ?";
+        String updateSQL = "";
+        String updateValue = "";
+
+        System.out.println("What would you like to update?");
+        System.out.println("""
+                1. eStatus
+                2. eType
+                3. eSize
+                """);
+
+        Scanner sc = new Scanner(System.in);
+        int choice = sc.nextInt();
+        sc.nextLine();
+
+        if (choice == 1) {
+            updateSQL = "UPDATE Equipment SET eStatus = ? WHERE EID = ?";
+            updateValue = eStatus;
+        } else if (choice == 2) {
+            updateSQL = "UPDATE Equipment SET eType = ? WHERE EID = ?";
+            updateValue = eType;
+        } else if (choice == 3) {
+            updateSQL = "UPDATE Equipment SET eSize = ? WHERE EID = ?";
+            updateValue = eSize;
+        } else {
+            System.out.println("Invalid choice.");
+            sc.close();
+            return;
+        }
+
         try (PreparedStatement pstmt = conn.prepareStatement(updateSQL)) {
-            pstmt.setString(1, eStatus);
-            pstmt.setString(2, eType);
-            pstmt.setString(3, eSize);
-            pstmt.setInt(4, EID);
+            pstmt.setString(1, updateValue);
+            pstmt.setInt(2, EID);
+
             int rowsAffected = pstmt.executeUpdate();
             System.out.println(rowsAffected > 0 ? "Equipment item updated successfully."
                     : "No equipment item found with the provided EID.");
         }
     }
 
-    private static void deleteEquipmentItem(Connection conn, int EID) throws SQLException {
-        String deleteSQL = "DELETE FROM Equipment WHERE EID = ?";
-        try (PreparedStatement pstmt = conn.prepareStatement(deleteSQL)) {
-            pstmt.setInt(1, EID);
-            int rowsAffected = pstmt.executeUpdate();
-            System.out.println(rowsAffected > 0 ? "Equipment item deleted successfully."
-                    : "No equipment item found with the provided EID.");
+    private static void archiveEquipmentItem(Connection conn, int EID) throws SQLException {
+        String statusCheckSQL = "SELECT eStatus FROM Equipment WHERE EID = ?";
+        String eStatus = null;
+
+        try (PreparedStatement statusStmt = conn.prepareStatement(statusCheckSQL)) {
+            statusStmt.setInt(1, EID);
+            ResultSet rs = statusStmt.executeQuery();
+            if (rs.next()) {
+                eStatus = rs.getString("eStatus");
+            } else {
+                System.out.println("No equipment item found with the provided EID.");
+                return;
+            }
+        }
+
+        if (!eStatus.equalsIgnoreCase("retired") && !eStatus.equalsIgnoreCase("lost")) {
+            System.out.println("Deletion not allowed: Equipment must be retired or lost.");
+            return;
+        }
+
+        String rentalCheckSQL = "SELECT COUNT(*) AS count FROM Rental WHERE EID = ? AND status IN ('Rented')";
+        int activeCount = 0;
+
+        try (PreparedStatement rentalStmt = conn.prepareStatement(rentalCheckSQL)) {
+            rentalStmt.setInt(1, EID);
+            ResultSet rs = rentalStmt.executeQuery();
+            if (rs.next()) {
+                activeCount = rs.getInt("count");
+            }
+        }
+
+        if (activeCount > 0) {
+            System.out.println("Deletion not allowed: Equipment is currently rented.");
+            return;
+        }
+
+        String archiveSQL = "UPDATE Equipment SET eStatus = 'archived' WHERE EID = ?";
+
+        try (PreparedStatement archiveStmt = conn.prepareStatement(archiveSQL)) {
+            archiveStmt.setInt(1, EID);
+            int rowsAffected = archiveStmt.executeUpdate();
+            System.out.println(rowsAffected > 0 ? "Equipment item archived successfully."
+                    : "Failed to archive equipment item.");
         }
     }
 
@@ -809,7 +871,10 @@ public class Program4 {
                     System.out.println("7. Add Ski Pass");
                     System.out.println("8. Update Ski Pass");
                     System.out.println("9. Delete Ski Pass");
-                    System.out.println("10. Exit");
+                    System.out.println("10. Add Equipment");
+                    System.out.println("11. Update Equipment");
+                    System.out.println("12. Delete Equipment");
+                    System.out.println("13. Exit");
                     System.out.print("Select an option: ");
 
                     String choice = input.nextLine();
@@ -847,15 +912,52 @@ public class Program4 {
                             break;
                         case "5":
                             updateMember(conn, input);
+                            break;
                         case "6":
                             deleteMember(conn, input);
+                            break;
                         case "7":
                             addSkiPass(conn, input);
+                            break;
                         case "8":
                             updateSkiPass(conn, input);
+                            break;
                         case "9":
                             deleteSkiPass(conn, input);
+                            break;
                         case "10":
+                            System.out.println("Please enter the following information:");
+                            System.out.println("EID, RID, eType, eSize, eStatus");
+                            String equipment = input.nextLine();
+                            String[] parts = equipment.split(",");
+                            int eid = Integer.parseInt(parts[0].trim());
+                            int rid = Integer.parseInt(parts[1].trim());
+                            String etype = parts[2].trim();
+                            String esize = parts[3].trim();
+                            String estatus = parts[4].trim();
+                            insertEquipmentItem(conn, eid, rid, etype, esize, estatus);
+                            break;
+                        case "11":
+                            System.out.println("Please enter the following information:");
+                            System.out.println("EID, RID, eType, eSize, eStatus");
+                            String equipmentUpdate = input.nextLine();
+                            String[] partsUpdate = equipmentUpdate.split(",");
+                            int eidUpdate = Integer.parseInt(partsUpdate[0].trim());
+                            int ridUpdate = Integer.parseInt(partsUpdate[1].trim());
+                            String etypeUpdate = partsUpdate[2].trim();
+                            String esizeUpdate = partsUpdate[3].trim();
+                            String estatusUpdate = partsUpdate[4].trim();
+                            updateEquipmentItem(conn, eidUpdate, ridUpdate, estatusUpdate, etypeUpdate, esizeUpdate);
+                            break;
+                        case "12":
+                            System.out.println("Please enter the following information:");
+                            System.out.println("EID");
+                            String equipmentDelete = input.nextLine();
+                            String[] partsDelete = equipmentDelete.split(",");
+                            int eidDelete = Integer.parseInt(partsDelete[0].trim());
+                            archiveEquipmentItem(conn, eidDelete);
+                            break;
+                        case "13":
                             System.out.println("Goodbye!");
                             return;
                         default:
