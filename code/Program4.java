@@ -4,14 +4,14 @@ import java.util.*;
 
 public class Program4 {
     private static final String QUERY1_STRING =
-            "SELECT LP.orderId, LP.totalSessions, LP.remainingSessions, LP.pricePerSession, " +
-            "L.lessonId, L.ageType, L.lessonType, L.durationType, L.startTime, " +
-            "E.firstName AS instructorFirstName, E.lastName AS instructorLastName " +
-            "FROM LessonPurchase LP JOIN Lesson L ON LP.lessonId = L.lessonId " +
-            "JOIN Instructor I ON L.instructorId = I.instructorId " +
-            "JOIN Employee E ON I.instructorId = E.employeeId " +
-            "JOIN Member M ON LP.memberId = M.memberId " +
-            "WHERE M.firstName = 'Olivia' AND M.lastName = 'Robinson';";
+        "SELECT LP.orderId, LP.totalSessions, LP.remainingSessions, LP.pricePerSession, " +
+        "L.lessonId, L.ageType, L.lessonType, L.durationType, L.startTime, " +
+        "E.firstName AS instructorFirstName, E.lastName AS instructorLastName " +
+        "FROM LessonPurchase LP JOIN Lesson L ON LP.lessonId = L.lessonId " +
+        "JOIN Instructor I ON L.instructorId = I.instructorId " +
+        "JOIN Employee E ON I.instructorId = E.employeeId " +
+        "JOIN Member M ON LP.memberId = M.memberId " +
+        "WHERE M.firstName = ? AND M.lastName = ?";
 
     private static final String QUERY2_STRING = "SELECT * FROM ( " +
             "SELECT 'LIFT RIDE' AS SECTION, ll.passId AS REF_ID, ll.liftName AS DETAIL1, TO_CHAR(ll.liftLotDate, 'YYYY-MM-DD') AS DETAIL2, NULL AS DETAIL3 FROM LiftLog ll " +
@@ -68,18 +68,34 @@ public class Program4 {
         }
     }
 
-    private static void runQuery1(Connection conn) throws SQLException {
+    private static void runQuery1(Connection conn, Scanner input) throws SQLException {
+        System.out.print("Enter member first name: ");
+        String firstName = input.nextLine().trim();
+    
+        System.out.print("Enter member last name: ");
+        String lastName = input.nextLine().trim();
+    
         System.out.println("\n=== Query 1: ===");
-        try (PreparedStatement stmt = conn.prepareStatement(QUERY1_STRING); ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                System.out.printf("OrderID: %d, Sessions: %d/%d, Price: $%.2f, LessonID: %d, Age: %s, Type: %s, Duration: %s, Time: %s, Instructor: %s %s\n",
-                        rs.getInt("orderId"), rs.getInt("totalSessions"), rs.getInt("remainingSessions"),
-                        rs.getDouble("pricePerSession"), rs.getInt("lessonId"), rs.getString("ageType"),
-                        rs.getString("lessonType"), rs.getString("durationType"), rs.getString("startTime"),
-                        rs.getString("instructorFirstName"), rs.getString("instructorLastName"));
+        try (PreparedStatement stmt = conn.prepareStatement(QUERY1_STRING)) {
+            stmt.setString(1, firstName);
+            stmt.setString(2, lastName);
+    
+            try (ResultSet rs = stmt.executeQuery()) {
+                boolean hasResults = false;
+                while (rs.next()) {
+                    hasResults = true;
+                    System.out.printf("OrderID: %d, Sessions: %d/%d, Price: $%.2f, LessonID: %d, Age: %s, Type: %s, Duration: %s, Time: %s, Instructor: %s %s\n",
+                            rs.getInt("orderId"), rs.getInt("totalSessions"), rs.getInt("remainingSessions"),
+                            rs.getDouble("pricePerSession"), rs.getInt("lessonId"), rs.getString("ageType"),
+                            rs.getString("lessonType"), rs.getString("durationType"), rs.getString("startTime"),
+                            rs.getString("instructorFirstName"), rs.getString("instructorLastName"));
+                }
+                if (!hasResults) {
+                    System.out.println("No lessons found for this member.");
+                }
             }
         }
-    }
+    }    
 
     public static void main(String[] args) {
         String username = "eduardoh12";
