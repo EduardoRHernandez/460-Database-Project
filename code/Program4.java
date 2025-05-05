@@ -44,12 +44,12 @@ public class Program4 {
         return null;
     }
 
-    private static void insertEquipmentItem(Connection conn, int EID, int RID, String eTpe, String eSize,
+    private static void insertEquipmentItem(Connection conn, int eid, int rid, String eTpe, String eSize,
             String eStatus) throws SQLException {
         String insertSQL = "INSERT INTO Equipment (EID, RID, eType, eSize, eStatus) VALUES (?, ?, ?, ?, ?)";
         try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
-            pstmt.setInt(1, EID);
-            pstmt.setInt(2, RID);
+            pstmt.setInt(1, eid);
+            pstmt.setInt(2, rid);
             pstmt.setString(3, eTpe);
             pstmt.setString(4, eSize);
             pstmt.setString(5, eStatus);
@@ -59,7 +59,7 @@ public class Program4 {
         }
     }
 
-    private static void updateEquipmentItem(Connection conn, int EID, int RID, String eStatus, String eType,
+    private static void updateEquipmentItem(Connection conn, int eid, String eStatus, String eType,
             String eSize) throws SQLException {
         String updateSQL = "";
         String updateValue = "";
@@ -75,24 +75,25 @@ public class Program4 {
         int choice = sc.nextInt();
         sc.nextLine();
 
-        if (choice == 1) {
-            updateSQL = "UPDATE Equipment SET eStatus = ? WHERE EID = ?";
-            updateValue = eStatus;
-        } else if (choice == 2) {
-            updateSQL = "UPDATE Equipment SET eType = ? WHERE EID = ?";
-            updateValue = eType;
-        } else if (choice == 3) {
-            updateSQL = "UPDATE Equipment SET eSize = ? WHERE EID = ?";
-            updateValue = eSize;
-        } else {
-            System.out.println("Invalid choice.");
-            sc.close();
-            return;
+        switch (choice) {
+            case 1 -> {
+                updateSQL = "UPDATE Equipment SET eStatus = ? WHERE EID = ?";
+                updateValue = eStatus;
+            }
+            case 2 -> {
+                updateSQL = "UPDATE Equipment SET eType = ? WHERE EID = ?";
+                updateValue = eType;
+            }
+            case 3 -> {
+                updateSQL = "UPDATE Equipment SET eSize = ? WHERE EID = ?";
+                updateValue = eSize;
+            }
+            default -> System.out.println("Invalid choice.");
         }
 
         try (PreparedStatement pstmt = conn.prepareStatement(updateSQL)) {
             pstmt.setString(1, updateValue);
-            pstmt.setInt(2, EID);
+            pstmt.setInt(2, eid);
 
             int rowsAffected = pstmt.executeUpdate();
             System.out.println(rowsAffected > 0 ? "Equipment item updated successfully."
@@ -100,12 +101,12 @@ public class Program4 {
         }
     }
 
-    private static void archiveEquipmentItem(Connection conn, int EID) throws SQLException {
+    private static void archiveEquipmentItem(Connection conn, int eid) throws SQLException {
         String statusCheckSQL = "SELECT eStatus FROM Equipment WHERE EID = ?";
         String eStatus = null;
 
         try (PreparedStatement statusStmt = conn.prepareStatement(statusCheckSQL)) {
-            statusStmt.setInt(1, EID);
+            statusStmt.setInt(1, eid);
             ResultSet rs = statusStmt.executeQuery();
             if (rs.next()) {
                 eStatus = rs.getString("eStatus");
@@ -124,7 +125,7 @@ public class Program4 {
         int activeCount = 0;
 
         try (PreparedStatement rentalStmt = conn.prepareStatement(rentalCheckSQL)) {
-            rentalStmt.setInt(1, EID);
+            rentalStmt.setInt(1, eid);
             ResultSet rs = rentalStmt.executeQuery();
             if (rs.next()) {
                 activeCount = rs.getInt("count");
@@ -139,7 +140,7 @@ public class Program4 {
         String archiveSQL = "UPDATE Equipment SET eStatus = 'archived' WHERE EID = ?";
 
         try (PreparedStatement archiveStmt = conn.prepareStatement(archiveSQL)) {
-            archiveStmt.setInt(1, EID);
+            archiveStmt.setInt(1, eid);
             int rowsAffected = archiveStmt.executeUpdate();
             System.out.println(rowsAffected > 0 ? "Equipment item archived successfully."
                     : "Failed to archive equipment item.");
@@ -848,13 +849,14 @@ public class Program4 {
         try {
             Class.forName("oracle.jdbc.OracleDriver");
         } catch (ClassNotFoundException e) {
-            System.err.println("*** ClassNotFoundException:  " + "Error loading Oracle JDBC driver.  \n"
-                    + "\tPerhaps the driver is not on the Classpath? \n" + "Try this: \n"
-                    + "export CLASSPATH=/usr/lib/oracle/19.8/client64/lib/ojdbc8.jar:${CLASSPATH}");
-
+            System.err.println("""
+                    *** ClassNotFoundException:  Error loading Oracle JDBC driver.
+                    \tPerhaps the driver is not on the Classpath?
+                    Try this:
+                    export CLASSPATH=/usr/lib/oracle/19.8/client64/lib/ojdbc8.jar:${CLASSPATH}
+                    """);
             System.exit(-1);
         }
-
         try (Connection conn = getConnection(username, password); Scanner input = new Scanner(System.in)) {
             System.out.print("Do you want to edit the database? (y/n): ");
             String editChoice = input.nextLine().trim().toLowerCase();
@@ -939,15 +941,14 @@ public class Program4 {
                             break;
                         case "11":
                             System.out.println("Please enter the following information:");
-                            System.out.println("EID, RID, eType, eSize, eStatus");
+                            System.out.println("EID, eType, eSize, eStatus");
                             String equipmentUpdate = input.nextLine();
                             String[] partsUpdate = equipmentUpdate.split(",");
                             int eidUpdate = Integer.parseInt(partsUpdate[0].trim());
-                            int ridUpdate = Integer.parseInt(partsUpdate[1].trim());
                             String etypeUpdate = partsUpdate[2].trim();
                             String esizeUpdate = partsUpdate[3].trim();
                             String estatusUpdate = partsUpdate[4].trim();
-                            updateEquipmentItem(conn, eidUpdate, ridUpdate, estatusUpdate, etypeUpdate, esizeUpdate);
+                            updateEquipmentItem(conn, eidUpdate, estatusUpdate, etypeUpdate, esizeUpdate);
                             break;
                         case "12":
                             System.out.println("Please enter the following information:");
@@ -986,7 +987,7 @@ public class Program4 {
                                 stmt.setString(1, passId);
                                 try (ResultSet rs = stmt.executeQuery()) {
                                     while (rs.next()) {
-                                        System.out.printf("[%s] ID: %s | %s | %s | %s\n",
+                                        System.out.printf("[%s] ID: %s | %s | %s | %s%n",
                                                 rs.getString("SECTION"), rs.getString("REF_ID"),
                                                 rs.getString("DETAIL1"), rs.getString("DETAIL2"),
                                                 rs.getString("DETAIL3"));
@@ -998,7 +999,7 @@ public class Program4 {
                             try (PreparedStatement stmt = conn.prepareStatement(QUERY3_STRING);
                                     ResultSet rs = stmt.executeQuery()) {
                                 while (rs.next()) {
-                                    System.out.printf("Trail: %s, Category: %s, Lift: %s\n",
+                                    System.out.printf("Trail: %s, Category: %s, Lift: %s%n",
                                             rs.getString("trail_name"), rs.getString("category"),
                                             rs.getString("lift_name"));
                                 }
@@ -1013,8 +1014,7 @@ public class Program4 {
                                 System.out.println("Invalid equipment id");
                                 return;
                             }
-                            // runQuery4(conn, eId);
-
+                            runQuery4(conn, eId);
                             break;
                         case "5":
                             System.out.println("Goodbye!");
