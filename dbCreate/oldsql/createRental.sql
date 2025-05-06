@@ -1,0 +1,18 @@
+CREATE TABLE Rental (
+    RID NUMBER PRIMARY KEY,
+    passId NUMBER NOT NULL REFERENCES SkiPass(passId) ON DELETE CASCADE,
+    rentalDate DATE,
+    returnStatus VARCHAR2(20) CHECK (returnStatus IN ('Rented', 'Available'))
+);
+
+CREATE SEQUENCE rental_seq START WITH 1 INCREMENT BY 1;
+
+
+CREATE OR REPLACE TRIGGER rental_before_insert
+BEFORE INSERT ON Rental
+FOR EACH ROW
+WHEN (NEW.RID IS NULL)
+BEGIN
+    SELECT rental_seq.NEXTVAL INTO :NEW.RID FROM dual;
+END;
+/

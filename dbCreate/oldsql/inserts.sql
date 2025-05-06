@@ -133,8 +133,3 @@ VALUES (1, 'Eagle Ridge Express', SYSDATE);
 
 INSERT INTO LiftLog (passId, liftName, liftLogDate)
 VALUES (1, 'Eagle Ridge Express', SYSDATE);
-
-@query3Inserts
-@populateTablesFirstQuery
-
-scp stevengeorge@lec.cs.arizona.edu:/home/stevengeorge/CSC_460/Program4/*.sql /Users/steven/Desktop/4_CSC_460/CSC_460_Final_Project/460-Database-Project
