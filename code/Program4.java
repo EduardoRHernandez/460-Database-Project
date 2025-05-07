@@ -578,22 +578,28 @@ public class Program4 {
             boolean unableToReturn = false;
 
             if (hasAny(conn,
-                    "SELECT 1 FROM skipass WHERE memberId = " + memberId + " AND EXPIRATIONDATE >= SYSDATE")) {
-                System.out.println("Active ski pass(es) present. Please delete or use them before deleting account");
+                    "SELECT passid FROM skipass WHERE memberId = " + memberId , //+ " AND EXPIRATIONDATE >= SYSDATE",
+                    "PASSID",
+                    "Active ski pass(es) present. Please delete or use them before deleting account")) {
+                // System.out.println("Active ski pass(es) present. Please delete or use them before deleting account");
                 unableToReturn = true;
             }
 
             if (hasAny(conn,
-                    "SELECT 1 FROM lessonpurchase WHERE memberId = " + memberId + " AND remainingSessions > 0")) {
-                System.out.println(
-                        "Active lesson purchase(s) present. Please delete or use them before deleting account");
+                    "SELECT orderid FROM lessonpurchase WHERE memberId = " + memberId + " AND remainingSessions > 0",
+                    "ORDERID",
+                    "Active lesson purchase(s) present. Please delete or use them before deleting account")) {
+                // System.out.println(
+                        // "Active lesson purchase(s) present. Please delete or use them before deleting account");
                 unableToReturn = true;
             }
 
             if (hasAny(conn,
-                    "SELECT 1 FROM Rental r JOIN SKIPASS s ON r.passid = s.passid WHERE s.memberId = " + memberId
-                            + " AND r.returnStatus = 'Rented'")) {
-                System.out.println("Active rental(s) present. Please delete or use them before deleting account");
+                    "SELECT rid FROM Rental r JOIN SKIPASS s ON r.passid = s.passid WHERE s.memberId = " + memberId
+                            + " AND r.returnStatus = 'Rented'",
+                    "RID",
+                    "Active rental(s) present. Please delete or use them before deleting account")) {
+                // System.out.println("Active rental(s) present. Please delete or use them before deleting account");
                 unableToReturn = true;
             }
 
@@ -813,6 +819,7 @@ public class Program4 {
                 int memberId = rs.getInt("memberId");
                 java.sql.Date purchaseDate = rs.getDate("purchaseDate");
                 java.sql.Date expirationDate = rs.getDate("expirationDate");
+                System.out.println(expirationDate);
                 int totalUses = rs.getInt("totalUses");
                 String type = rs.getString("type");
                 int remainingUsesInt = 0;
@@ -848,7 +855,10 @@ public class Program4 {
                 String archiveSql = "INSERT INTO ArchivedPass ( passId, memberId, purchaseDate, expirationDate, "
                                     +
                                     "totalUses, type, archiveDate, archiveReason) VALUES (?, ?, ?, ?, ?, ?, SYSDATE, ?)";
-
+                if (expirationDate.before(java.sql.Date.valueOf(LocalDate.now()))){
+                    System.out.println("Pass is expired");
+                    remainingUses = "0";
+                }
                 // System.out.println("Remaining uses is " + remainingUses);
                 if (remainingUses.compareTo("0") == 0 || remainingUses.compareTo("inf") == 0) {
                     if (!expirationDate.before(java.sql.Date.valueOf(LocalDate.now()))) {
@@ -1018,14 +1028,25 @@ public class Program4 {
 
     }
 
-    private static boolean hasAny(Connection conn, String sql) throws SQLException {
+    private static boolean hasAny(Connection conn, String sql, String fieldName, String message) throws SQLException {
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             try (ResultSet rs = stmt.executeQuery()) {
-                return rs.next();
+                // return rs.next();
+                if (rs.next()) {
+                System.out.println("\n\n" + message);
+                do {
+                    System.out.println(fieldName + ": " + rs.getString(fieldName));
+                } while (rs.next());
+                return true;
+            } else {
+                return false;
+            }
             }
         }
 
     }
+
+
 
     private static void addEquipmentRental(Connection conn, Scanner input) throws SQLException {
         System.out.println("Enter Ski Pass ID:");
@@ -1290,7 +1311,7 @@ public class Program4 {
             findPstmt.close();
 
             // Log the deletion
-            String logDeleteSQL = "INSERT INTO RentalChangeLog (RID, action, date) VALUES (?, 'Delete', SYSDATE)";
+            String logDeleteSQL = "INSERT INTO RentalChangeLog (RID, action, rentalChangeDate) VALUES (?, 'Delete', SYSDATE)";
             PreparedStatement logPstmt = conn.prepareStatement(logDeleteSQL);
             logPstmt.setInt(1, rentalId);
             logPstmt.executeUpdate();
@@ -1365,6 +1386,7 @@ public class Program4 {
                     String choice = input.nextLine();
                     switch (choice) {
                         case "1":
+                            try{
                             System.out.print("Enter Order ID: ");
                             int orderId = Integer.parseInt(input.nextLine());
                             System.out.print("Enter Member ID: ");
@@ -1379,18 +1401,32 @@ public class Program4 {
                             double pricePerSession = Double.parseDouble(input.nextLine());
                             addLessonPurchase(conn, orderId, memberId, lessonId, totalSessions, remainingSessions,
                                     pricePerSession);
+                            } catch (NumberFormatException e) {
+                                System.out.println("Invalid input");
+                                return;
+                            }
                             break;
                         case "2":
+                            try{
                             System.out.print("Enter Order ID to update: ");
                             int updateOrderId = Integer.parseInt(input.nextLine());
                             System.out.print("Enter new Remaining Sessions: ");
                             int newRemainingSessions = Integer.parseInt(input.nextLine());
                             updateLessonPurchase(conn, updateOrderId, newRemainingSessions);
+                            } catch (NumberFormatException e) {
+                                System.out.println("Invalid input");
+                                return;
+                            }
                             break;
                         case "3":
+                            try{
                             System.out.print("Enter Order ID to delete: ");
                             int deleteOrderId = Integer.parseInt(input.nextLine());
                             deleteLessonPurchase(conn, deleteOrderId);
+                            } catch (NumberFormatException e) {
+                                System.out.println("Invalid input");
+                                return;
+                            }
                             break;
                         case "4":
                             addMember(conn, input);
