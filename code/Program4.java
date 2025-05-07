@@ -1,6 +1,8 @@
 import java.sql.*;
 import java.util.*;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
 public class Program4 {
     private static final String QUERY1_STRING = "SELECT LP.orderId, LP.totalSessions, LP.remainingSessions, LP.pricePerSession, "
@@ -326,28 +328,51 @@ public class Program4 {
         }
     }
 
-    private static void addMember(Connection conn, Scanner input) throws SQLException {
+        private static void addMember(Connection conn, Scanner input) throws SQLException {
         String add_member_string = "INSERT INTO member ( " +
                 "FIRSTNAME, LASTNAME, PHONE, EMAIL, DOB, " +
                 "EMGCONTACTFNAME, EMGCONTACTLNAME, EMGCONTACTPHONE ) " +
                 " VALUES (?, ?, ?, ?, TO_DATE(?, 'YYYY-MM-DD'), ?, ?, ? )";
 
-        System.out.println("First Name:");
-        String firstName = input.nextLine();
-        System.out.println("Last Name:");
-        String lastName = input.nextLine();
-        System.out.println("Phone (XXX-XXX-XXXX):");
-        String phone = input.nextLine();
-        System.out.println("Email:");
-        String email = input.nextLine();
-        System.out.println("Date Of Birth (YYYY-MM-DD):");
-        String dob = input.nextLine();
-        System.out.println("Emergency Contact First Name:");
-        String emFirstName = input.nextLine();
-        System.out.println("Emergency Contact Last Name:");
-        String emLastName = input.nextLine();
-        System.out.println("Emergency Contact Phone (XXX-XXX-XXXX):");
-        String emPhone = input.nextLine();
+        String firstName = promptAndValidate(input, "First Name:");
+        if (firstName == null) return;
+
+        String lastName = promptAndValidate(input, "Last Name:");
+        if (lastName == null) return;
+
+        String phone = promptAndValidate(input, "Phone (XXX-XXX-XXXX):");
+        if (phone == null) return;
+
+        String email = promptAndValidate(input, "Email:");
+        if (email == null) return;
+
+        String dob = promptAndValidate(input, "Date Of Birth (YYYY-MM-DD):");
+        if (dob == null) return;
+        try{
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+            LocalDate birthday = LocalDate.parse(dob, formatter);
+            LocalDate now = LocalDate.now();
+            LocalDate oldest = now.minusYears(200);
+            if (birthday.isAfter(now) || birthday.isBefore(oldest)){
+                System.out.println("Invalid birthday\nPress enter to continue");
+                input.nextLine();
+                return;
+            }
+        } catch (DateTimeParseException e){
+            System.out.println("Invalid birthday\nPress enter to continue");
+            input.nextLine();
+            return;
+        }
+
+        String emFirstName = promptAndValidate(input, "Emergency Contact First Name:");
+        if (emFirstName == null) return;
+
+        String emLastName = promptAndValidate(input, "Emergency Contact Last Name:");
+        if (emLastName == null) return;
+
+        String emPhone = promptAndValidate(input, "Emergency Contact Phone (XXX-XXX-XXXX):");
+        if (emPhone == null) return;
+
 
         try (PreparedStatement stmt = conn.prepareStatement(add_member_string, new String[] { "memberId" })) {
             stmt.setString(1, firstName);
@@ -371,7 +396,21 @@ public class Program4 {
             // System.out.println(rowsAffected > 0 ? "Member added successfully." : "Failed
             // to add member.");
         }
+        System.out.println("Press enter to continue");
+        input.nextLine();
 
+    }
+
+    private static String promptAndValidate(Scanner input, String prompt){
+        System.out.println(prompt);
+        String val = input.nextLine();
+        if (val == null || val.trim().isEmpty()) {
+            System.out.println("Input is null or empty.");
+            System.out.println("Press enter to continue");
+            input.nextLine();
+            return null;
+        }
+        return val;
     }
 
     private static boolean memberExists(Connection conn, int memberId) throws SQLException {
@@ -478,6 +517,22 @@ public class Program4 {
             } else if (inputCase == 2) {
                 System.out.println("Enter the updated date of birth (YYYY-MM-DD): ");
                 newVal1 = input.nextLine();
+                if (newVal1 == null) return;
+                try{
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+                    LocalDate birthday = LocalDate.parse(newVal1, formatter);
+                    LocalDate now = LocalDate.now();
+                    LocalDate oldest = now.minusYears(200);
+                    if (birthday.isAfter(now) || birthday.isBefore(oldest)){
+                        System.out.println("Invalid birthday\nPress enter to continue");
+                        input.nextLine();
+                        return;
+                    }
+                } catch (DateTimeParseException e){
+                    System.out.println("Invalid birthday\nPress enter to continue");
+                    input.nextLine();
+                    return;
+                }
                 editMemberSql = "UPDATE Member SET dob = TO_DATE(?, 'YYYY-MM-DD') WHERE MemberId = ?";
                 try (PreparedStatement stmt = conn.prepareStatement(editMemberSql)) {
                     stmt.setString(1, newVal1);
@@ -543,13 +598,13 @@ public class Program4 {
             }
 
             if (unableToReturn) {
-                System.out.println("Unable to delete account yet. Press enter to continue");
+                System.out.println("Press enter to continue");
                 input.nextLine();
                 return;
 
             } else {
-                System.out.println("Are you sure you want to delete your account. This action is final");
-                System.out.println("Press 'y' to permanently delete your account");
+                System.out.println("Are you sure you want to delete the account. This action is final");
+                System.out.println("Press 'y' to permanently delete the account");
                 System.out.println("Press 'n' to cancel");
                 String selection = input.nextLine();
                 if (selection.compareTo("y") == 0) {
@@ -708,24 +763,24 @@ public class Program4 {
         }
 
         // TEST CODE ONLY. DELETE THIS
-        String query = "SELECT * FROM skipass";
-        try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(query)) {
-            ResultSetMetaData meta = rs.getMetaData();
-            int columnCount = meta.getColumnCount();
+        // String query = "SELECT * FROM skipass";
+        // try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(query)) {
+        //     ResultSetMetaData meta = rs.getMetaData();
+        //     int columnCount = meta.getColumnCount();
 
-            System.out.println("\n=== SkiPass Table ===");
+        //     System.out.println("\n=== SkiPass Table ===");
 
-            while (rs.next()) {
-                System.out.println("-------------------------------");
-                for (int i = 1; i <= columnCount; i++) {
-                    String colName = meta.getColumnName(i);
-                    String value = rs.getString(i);
-                    System.out.printf("%-20s: %s%n", colName, value);
-                }
-            }
+        //     while (rs.next()) {
+        //         System.out.println("-------------------------------");
+        //         for (int i = 1; i <= columnCount; i++) {
+        //             String colName = meta.getColumnName(i);
+        //             String value = rs.getString(i);
+        //             System.out.printf("%-20s: %s%n", colName, value);
+        //         }
+        //     }
 
-            System.out.println("-------------------------------");
-        }
+        //     System.out.println("-------------------------------");
+        // }
 
     }
 
@@ -760,35 +815,101 @@ public class Program4 {
                 java.sql.Date expirationDate = rs.getDate("expirationDate");
                 int totalUses = rs.getInt("totalUses");
                 String type = rs.getString("type");
+                int remainingUsesInt = 0;
                 String remainingUses = null;
                 switch (type) {
                     case "1 day":
-                        remainingUses = Integer.toString(1 - totalUses);
+                        remainingUsesInt = 1 - totalUses;
+                        if (remainingUsesInt < 0){
+                            remainingUsesInt = 0;
+                        }
+                        remainingUses = Integer.toString(remainingUsesInt);
+
                         break;
                     case "2 day":
-                        remainingUses = Integer.toString(2 - totalUses);
+                        remainingUsesInt = 2 - totalUses;
+                        if (remainingUsesInt < 0){
+                            remainingUsesInt = 0;
+                        }
+                        remainingUses = Integer.toString(remainingUsesInt);
                         break;
                     case "4 day":
-                        remainingUses = Integer.toString(4 - totalUses);
+                        remainingUsesInt = 3 - totalUses;
+                        if (remainingUsesInt < 0){
+                            remainingUsesInt = 0;
+                        }
+                        remainingUses = Integer.toString(remainingUsesInt);
                         break;
                     case "season":
                         remainingUses = "inf";
                         break;
                 }
 
-                if (remainingUses.compareTo("0") == 0) {
+                String archiveSql = "INSERT INTO ArchivedPass ( passId, memberId, purchaseDate, expirationDate, "
+                                    +
+                                    "totalUses, type, archiveDate, archiveReason) VALUES (?, ?, ?, ?, ?, ?, SYSDATE, ?)";
+
+                // System.out.println("Remaining uses is " + remainingUses);
+                if (remainingUses.compareTo("0") == 0 || remainingUses.compareTo("inf") == 0) {
                     if (!expirationDate.before(java.sql.Date.valueOf(LocalDate.now()))) {
                         System.out.println("Pass has not expired and cannot be deleted");
-                        return;
+                        // return;
                     } else {
                         System.out.println("Pass can be deleted. Are you sure you want to delete the pass?");
+                        if (remainingUses.compareTo("inf") == 0){
+                            System.out.println("This is a season pass and can be used until the end of the season");
+                            System.out.println("Deletion is permanent");
+                        }
                         System.out.println("Enter 'y' to delete the pass, else enter anything");
                         String selection = input.nextLine();
                         if (selection.compareTo("y") == 0) {
 
-                            String archiveSql = "INSERT INTO ArchivedPass ( passId, memberId, purchaseDate, expirationDate, "
-                                    +
-                                    "totalUses, type, archiveDate, archiveReason) VALUES (?, ?, ?, ?, ?, ?, SYSDATE, ?)";
+                            
+                            try (PreparedStatement archiveStmt = conn.prepareStatement(archiveSql)) {
+                                archiveStmt.setInt(1, passId);
+                                archiveStmt.setInt(2, memberId);
+                                archiveStmt.setDate(3, purchaseDate);
+                                archiveStmt.setDate(4, expirationDate);
+                                archiveStmt.setInt(5, totalUses);
+                                archiveStmt.setString(6, type);
+                                archiveStmt.setString(7, "Expired");
+                                archiveStmt.executeUpdate();
+                                System.out.println("Ski pass archived.");
+                            }
+
+                            String deleteSql = " Delete from skipass where passid = ? ";
+                            try (PreparedStatement deleteStmt = conn.prepareStatement(deleteSql)) {
+                                deleteStmt.setInt(1, passId);
+                                int rows = deleteStmt.executeUpdate();
+
+                                if (rows > 0) {
+                                    System.out.println("Ski pass deleted successfully.");
+                                } else {
+                                    System.out.println("Ski pass deletion failed.");
+                                }
+                            }
+
+                            return;
+                        } else {
+                            System.out.println("Pass not deleted");
+                            return;
+                        }
+
+                    }
+                } else{
+                    System.out.println("Pass has days remaining and cannot be deleted");
+                }
+                
+                    
+                    System.out.println("Has the pass been refunded? y/n");
+                    String refundInput = input.nextLine();
+                    if (refundInput.compareTo("y") == 0){
+                        System.out.println("Press 'y' again to delete the pass");
+                        System.out.println("Press 'n' to cancel");
+                        refundInput = input.nextLine();
+                        if (refundInput.compareTo("y") == 0) {
+
+                            
                             try (PreparedStatement archiveStmt = conn.prepareStatement(archiveSql)) {
                                 archiveStmt.setInt(1, passId);
                                 archiveStmt.setInt(2, memberId);
@@ -815,12 +936,9 @@ public class Program4 {
                         } else {
                             System.out.println("Pass not deleted");
                         }
-
                     }
-                } else {
-                    System.out.println("Pass has days remaining and cannot be deleted");
                     return;
-                }
+                
 
                 // if (totalUses == 0){
                 // if (!expirationDate.before(java.sql.Date.valueOf(LocalDate.now()))){
