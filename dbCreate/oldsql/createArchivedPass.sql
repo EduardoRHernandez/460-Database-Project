@@ -1,6 +1,6 @@
 CREATE TABLE ArchivedPass (
     passId          NUMBER PRIMARY KEY,
-    memberId        NUMBER NOT NULL REFERENCES Member(memberId),
+    memberId        NUMBER NOT NULL, -- REFERENCES Member(memberId),
     purchaseDate    DATE NOT NULL,
     expirationDate  DATE NOT NULL,
     totalUses       NUMBER NOT NULL,
