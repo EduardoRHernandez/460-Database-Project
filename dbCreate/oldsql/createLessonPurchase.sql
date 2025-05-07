@@ -1,6 +1,6 @@
 CREATE TABLE LessonPurchase (
     orderId NUMBER PRIMARY KEY,
-    memberId NUMBER NOT NULL REFERENCES Member(memberId),
+    memberId NUMBER NOT NULL REFERENCES Member(memberId) on delete cascade,
     lessonId NUMBER NOT NULL REFERENCES Lesson(lessonId),
     totalSessions NUMBER(3) CHECK (totalSessions > 0),
     remainingSessions NUMBER(3) CHECK (remainingSessions >= 0),

@@ -6,7 +6,7 @@ CREATE TABLE Equipment (
     ),
     eSize VARCHAR2(20),
     eStatus VARCHAR2(20) CHECK (
-        eStatus IN ('Available', 'Rented', 'Lost', 'Retired', 'Archived')
+        eStatus IN ('Available', 'Rented', 'Lost', 'Retired')
     )
 );
 
