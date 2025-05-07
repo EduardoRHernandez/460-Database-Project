@@ -8,18 +8,18 @@
 import java.sql.*;
 import java.util.*;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
 public class Program4 {
     // Queries
     private static final String QUERY1_STRING = "SELECT LP.orderId, LP.totalSessions, LP.remainingSessions, LP.pricePerSession, "
-            +
-            "L.lessonId, L.ageType, L.lessonType, L.durationType, L.startTime, " +
-            "E.firstName AS instructorFirstName, E.lastName AS instructorLastName " +
-            "FROM LessonPurchase LP JOIN Lesson L ON LP.lessonId = L.lessonId " +
-            "JOIN Instructor I ON L.instructorId = I.instructorId " +
-            "JOIN Employee E ON I.instructorId = E.employeeId " +
-            "JOIN Member M ON LP.memberId = M.memberId " +
-            "WHERE M.firstName = ? AND M.lastName = ?";
+            + "L.lessonId, L.ageType, L.lessonType, L.durationType, L.startTime, "
+            + "E.firstName AS instructorFirstName, E.lastName AS instructorLastName "
+            + "FROM LessonPurchase LP JOIN Lesson L ON LP.lessonId = L.lessonId "
+            + "JOIN Instructor I ON L.instructorId = I.instructorId "
+            + "JOIN Employee E ON I.instructorId = E.employeeId " + "JOIN Member M ON LP.memberId = M.memberId "
+            + "WHERE M.firstName = ? AND M.lastName = ?";
 
     private static final String QUERY2_STRING = "SELECT * FROM ( " +
             "SELECT DISTINCT 'LIFT RIDE' AS SECTION, ll.passId AS REF_ID, ll.liftName AS DETAIL1, " +
@@ -32,15 +32,13 @@ public class Program4 {
             ") WHERE REF_ID = ? " +
             "ORDER BY DETAIL2";
 
-    private static final String QUERY3_STRING = "SELECT t.name AS trail_name, t.category, l.name AS lift_name " +
-            "FROM Trail t JOIN Lift l ON t.name = l.name " +
-            "WHERE t.difficulty = 'intermediate' AND t.status = 'open' AND l.status = 'open' ORDER BY t.name";
+    private static final String QUERY3_STRING = "SELECT t.name AS trail_name, t.category, l.name AS lift_name "
+            + "FROM Trail t JOIN Lift l ON t.name = l.name "
+            + "WHERE t.difficulty = 'intermediate' AND t.status = 'open' AND l.status = 'open' ORDER BY t.name";
 
     private static final String QUERY4_STRING = "SELECT eq.EID as EquipmentID, eq.ETYPE as EquipmentType, eq.ESIZE as EquipmentSize, eq.ESTATUS as CurrentStatus, "
-            +
-            " log.OLDTYPE,  log.NEWTYPE, log.OLDSIZE, log.NEWSIZE, log.OLDSTATUS, log.NEWSTATUS, TO_CHAR(log.changeDate, 'YYYY-MM-DD HH24:MI:SS') AS ChangeDate "
-            +
-            "FROM EquipmentChangeLog log JOIN Equipment eq ON log.EID = eq.EID WHERE eq.EID = ? ORDER BY log.changeDate DESC";
+            + " log.OLDTYPE,  log.NEWTYPE, log.OLDSIZE, log.NEWSIZE, log.OLDSTATUS, log.NEWSTATUS, TO_CHAR(log.changeDate, 'YYYY-MM-DD HH24:MI:SS') AS ChangeDate "
+            + "FROM EquipmentChangeLog log JOIN Equipment eq ON log.EID = eq.EID WHERE eq.EID = ? ORDER BY log.changeDate DESC";
 
     /**
      * Attempts to connect to the database using the given username and password.
@@ -143,7 +141,7 @@ public class Program4 {
      * @param eid  the equipment id of the item to update
      * @throws SQLException if a database error occurs
      */
-    private static void updateEquipmentItem(Connection conn, int eid) throws SQLException {
+    private static void updateEquipmentItem(Connection conn, int eid, Scanner sc) throws SQLException {
         // SQL to select current equipment details
         String selectSql = "SELECT eType, eSize, eStatus FROM Equipment WHERE EID = ?";
         String oldType, oldSize, oldStatus;
@@ -162,8 +160,6 @@ public class Program4 {
             }
         }
 
-        // Prompt user to select which attribute to update
-        Scanner sc = new Scanner(System.in);
         System.out.println("Select attribute to update:");
         System.out.println("1. eStatus");
         System.out.println("2. eType");
@@ -242,7 +238,9 @@ public class Program4 {
     private static void archiveEquipmentItem(Connection conn, int eid) throws SQLException {
         // SQL for selecting current equipment details
         String selectSql = "SELECT eType, eSize, eStatus FROM Equipment WHERE EID = ?";
-        String oldType, oldSize, oldStatus;
+        String oldType = null;
+        String oldSize = null;
+        String oldStatus = null;
 
         // Retrieve current equipment details
         try (PreparedStatement sel = conn.prepareStatement(selectSql)) {
@@ -310,6 +308,18 @@ public class Program4 {
         logEquipmentChange(conn, eid, oldType, oldType, oldSize, oldSize, oldStatus, newStatus);
     }
 
+    /**
+     * Adds a lesson purchase record to the database.
+     * 
+     * @param conn              The database connection object.
+     * @param orderId           The ID of the order.
+     * @param memberId          The ID of the member.
+     * @param lessonId          The ID of the lesson.
+     * @param totalSessions     The total number of sessions purchased.
+     * @param remainingSessions The remaining number of sessions.
+     * @param pricePerSession   The price per session.
+     * @throws SQLException if a database access error occurs.
+     */
     private static void addLessonPurchase(Connection conn, int orderId, int memberId, int lessonId, int totalSessions,
             int remainingSessions, double pricePerSession) throws SQLException {
         String insertSQL = "INSERT INTO LessonPurchase (orderId, memberId, lessonId, totalSessions, remainingSessions, pricePerSession) VALUES (?, ?, ?, ?, ?, ?)";
@@ -326,6 +336,14 @@ public class Program4 {
         }
     }
 
+    /**
+     * Updates a lesson purchase record in the database.
+     * 
+     * @param conn              The database connection object.
+     * @param orderId           The ID of the order.
+     * @param remainingSessions The new remaining number of sessions.
+     * @throws SQLException if a database access error occurs.
+     */
     private static void updateLessonPurchase(Connection conn, int orderId, int remainingSessions) throws SQLException {
         String updateSQL = "UPDATE LessonPurchase SET remainingSessions = ? WHERE orderId = ?";
         try (PreparedStatement pstmt = conn.prepareStatement(updateSQL)) {
@@ -337,15 +355,60 @@ public class Program4 {
         }
     }
 
-    private static void deleteLessonPurchase(Connection conn, int orderId) throws SQLException {
-        String deleteSQL = "DELETE FROM LessonPurchase WHERE orderId = ? AND remainingSessions = totalSessions";
+    /**
+     * Deletes a lesson purchase record from the database if it meets the criteria.
+     *
+     * This method attempts to delete a lesson purchase identified by the given
+     * orderId. The deletion is allowed only if the remaining sessions are equal
+     * to the total sessions or if the remaining sessions are zero. If the deletion
+     * criteria are not met, it prompts for an admin override to force deletion.
+     *
+     * @param conn    The database connection object.
+     * @param orderId The ID of the order to be deleted.
+     * @param input   The Scanner object for reading user input during admin
+     *                override.
+     * @throws SQLException if a database access error occurs.
+     */
+    private static void deleteLessonPurchase(Connection conn, int orderId, Scanner input) throws SQLException {
+        String deleteSQL = "DELETE FROM LessonPurchase WHERE orderId = ? AND (remainingSessions = totalSessions OR remainingSessions = 0)";
         try (PreparedStatement pstmt = conn.prepareStatement(deleteSQL)) {
             pstmt.setInt(1, orderId);
             int rowsAffected = pstmt.executeUpdate();
-            System.out.println(rowsAffected > 0 ? "Lesson purchase deleted successfully."
-                    : "No eligible lesson purchase found to delete (must have zero sessions used).");
+            if (rowsAffected > 0) {
+                System.out.println("Lesson purchases deleted successfully");
+            } else {
+                System.out.println("No eligible lesson purchase found to delete (must have zero sessions used)."
+                        + "\nAccount cannot be deleted. Admin Override? y/n");
+                String val = input.nextLine();
+                if (val.compareTo("y") == 0) {
+                    try (PreparedStatement stmt = conn
+                            .prepareStatement("Delete from lessonpurchase where orderid = ?")) {
+                        stmt.setInt(1, orderId);
+                        rowsAffected = stmt.executeUpdate();
+                        System.out.println(rowsAffected > 0 ? "Lesson purchase deleted successfully."
+                                : "No lesson purchase found with the provided orderId.");
+                    }
+                }
+
+            }
+
         }
     }
+
+    /**
+     * Executes a query to retrieve lesson details for a member based on their first
+     * and last name.
+     *
+     * Prompts the user for the member's first and last name, executes a predefined
+     * SQL query,
+     * and prints the details of each lesson purchase associated with the member. If
+     * no lessons
+     * are found, it informs the user accordingly.
+     *
+     * @param conn  the database connection
+     * @param input the scanner to read user input
+     * @throws SQLException if a database error occurs
+     */
 
     private static void runQuery1(Connection conn, Scanner input) throws SQLException {
         System.out.print("Enter member first name: ");
@@ -377,6 +440,17 @@ public class Program4 {
         }
     }
 
+    /**
+     * Retrieves the equipment change log for a given equipment id.
+     *
+     * Prints the log of changes to the equipment's type, size, and status.
+     * Each line of the log includes the date of the change,
+     * the old and new values of the equipment type, size, and status.
+     *
+     * @param conn the connection to the database
+     * @param eId  the equipment id to retrieve the change log for
+     * @throws SQLException if a database error occurs
+     */
     private static void runQuery4(Connection conn, String eId) throws SQLException {
         try (PreparedStatement stmt = conn.prepareStatement(QUERY4_STRING)) {
             stmt.setString(1, eId);
@@ -385,14 +459,9 @@ public class Program4 {
                 while (rs.next()) {
 
                     System.out.printf("Changed on %-20s: %-10s, %-10s -> %-10s, %-6s->%-6s, %-10s ->%-10s\n",
-                            rs.getString("CHANGEDATE"),
-                            rs.getString("EQUIPMENTTYPE"),
-                            rs.getString("OLDTYPE"),
-                            rs.getString("NEWTYPE"),
-                            rs.getString("OLDSIZE"),
-                            rs.getString("NEWSIZE"),
-                            rs.getString("OLDSTATUS"),
-                            rs.getString("NEWSTATUS")
+                            rs.getString("CHANGEDATE"), rs.getString("EQUIPMENTTYPE"), rs.getString("OLDTYPE"),
+                            rs.getString("NEWTYPE"), rs.getString("OLDSIZE"), rs.getString("NEWSIZE"),
+                            rs.getString("OLDSTATUS"), rs.getString("NEWSTATUS")
 
                     );
 
@@ -401,30 +470,74 @@ public class Program4 {
         }
     }
 
+    /**
+     * Adds a new member to the database.
+     * 
+     * Prompts the user to enter details for the new member, including first name,
+     * last name, phone number, email, date of birth, and emergency contact
+     * information. Each field is validated for proper format and constraints.
+     * 
+     * If any validation fails or the user input is invalid, the operation is
+     * aborted. The member details are inserted into the database and the new
+     * member ID is displayed upon successful insertion.
+     * 
+     * @param conn  The database connection object.
+     * @param input The Scanner object for reading user input.
+     * @throws SQLException If a database access error occurs.
+     */
     private static void addMember(Connection conn, Scanner input) throws SQLException {
-        String add_member_string = "INSERT INTO member ( " +
-                "FIRSTNAME, LASTNAME, PHONE, EMAIL, DOB, " +
-                "EMGCONTACTFNAME, EMGCONTACTLNAME, EMGCONTACTPHONE ) " +
-                " VALUES (?, ?, ?, ?, TO_DATE(?, 'YYYY-MM-DD'), ?, ?, ? )";
+        String addMemberString = "INSERT INTO member ( " + "FIRSTNAME, LASTNAME, PHONE, EMAIL, DOB, "
+                + "EMGCONTACTFNAME, EMGCONTACTLNAME, EMGCONTACTPHONE ) "
+                + " VALUES (?, ?, ?, ?, TO_DATE(?, 'YYYY-MM-DD'), ?, ?, ? )";
 
-        System.out.println("First Name:");
-        String firstName = input.nextLine();
-        System.out.println("Last Name:");
-        String lastName = input.nextLine();
-        System.out.println("Phone (XXX-XXX-XXXX):");
-        String phone = input.nextLine();
-        System.out.println("Email:");
-        String email = input.nextLine();
-        System.out.println("Date Of Birth (YYYY-MM-DD):");
-        String dob = input.nextLine();
-        System.out.println("Emergency Contact First Name:");
-        String emFirstName = input.nextLine();
-        System.out.println("Emergency Contact Last Name:");
-        String emLastName = input.nextLine();
-        System.out.println("Emergency Contact Phone (XXX-XXX-XXXX):");
-        String emPhone = input.nextLine();
+        String firstName = promptAndValidate(input, "First Name:");
+        if (firstName == null)
+            return;
 
-        try (PreparedStatement stmt = conn.prepareStatement(add_member_string, new String[] { "memberId" })) {
+        String lastName = promptAndValidate(input, "Last Name:");
+        if (lastName == null)
+            return;
+
+        String phone = promptAndValidate(input, "Phone (XXX-XXX-XXXX):");
+        if (phone == null)
+            return;
+
+        String email = promptAndValidate(input, "Email:");
+        if (email == null)
+            return;
+
+        String dob = promptAndValidate(input, "Date Of Birth (YYYY-MM-DD):");
+        if (dob == null)
+            return;
+        try {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+            LocalDate birthday = LocalDate.parse(dob, formatter);
+            LocalDate now = LocalDate.now();
+            LocalDate oldest = now.minusYears(200);
+            if (birthday.isAfter(now) || birthday.isBefore(oldest)) {
+                System.out.println("Invalid birthday\nPress enter to continue");
+                input.nextLine();
+                return;
+            }
+        } catch (DateTimeParseException e) {
+            System.out.println("Invalid birthday\nPress enter to continue");
+            input.nextLine();
+            return;
+        }
+
+        String emFirstName = promptAndValidate(input, "Emergency Contact First Name:");
+        if (emFirstName == null)
+            return;
+
+        String emLastName = promptAndValidate(input, "Emergency Contact Last Name:");
+        if (emLastName == null)
+            return;
+
+        String emPhone = promptAndValidate(input, "Emergency Contact Phone (XXX-XXX-XXXX):");
+        if (emPhone == null)
+            return;
+
+        try (PreparedStatement stmt = conn.prepareStatement(addMemberString, new String[] { "memberId" })) {
             stmt.setString(1, firstName);
             stmt.setString(2, lastName);
             stmt.setString(3, phone);
@@ -444,9 +557,45 @@ public class Program4 {
                 System.out.println("Failed to add member");
             }
         }
+        System.out.println("Press enter to continue");
+        input.nextLine();
 
     }
 
+    /**
+     * Prompts the user to enter a value and validates the input.
+     *
+     * Prints the given prompt to the console and reads the user's input.
+     * If the input is null or empty, prints an error message and returns null.
+     * Otherwise, returns the input.
+     *
+     * @param input  the scanner object to read input from
+     * @param prompt the prompt to display to the user
+     * @return the validated input, or null if the input is invalid
+     */
+    private static String promptAndValidate(Scanner input, String prompt) {
+        System.out.println(prompt);
+        String val = input.nextLine();
+        if (val == null || val.trim().isEmpty()) {
+            System.out.println("Input is null or empty.");
+            System.out.println("Press enter to continue");
+            input.nextLine();
+            return null;
+        }
+        return val;
+    }
+
+    /**
+     * Checks if a member exists in the database using the given member ID.
+     *
+     * Executes a query to determine if a record with the specified member ID
+     * exists in the Member table.
+     *
+     * @param conn     the database connection object.
+     * @param memberId the member ID to check for existence.
+     * @return true if the member exists, false otherwise.
+     * @throws SQLException if a database access error occurs.
+     */
     private static boolean memberExists(Connection conn, int memberId) throws SQLException {
         String memberCheckSql = "SELECT 1 FROM Member WHERE MemberId = ?";
         try (PreparedStatement stmt = conn.prepareStatement(memberCheckSql)) {
@@ -458,6 +607,14 @@ public class Program4 {
 
     }
 
+    /**
+     * Checks if a ski pass exists in the database.
+     * 
+     * @param conn   The database connection object.
+     * @param passId The pass ID to check.
+     * @return true if the pass exists, false otherwise.
+     * @throws SQLException if a database access error occurs.
+     */
     private static boolean passExists(Connection conn, int passId) throws SQLException {
         String passCheckSql = "SELECT 1 FROM skipass WHERE passid = ?";
         try (PreparedStatement stmt = conn.prepareStatement(passCheckSql)) {
@@ -469,6 +626,20 @@ public class Program4 {
 
     }
 
+    /**
+     * Updates a member record in the database. The user is prompted to enter
+     * the member ID, and if the member exists, the user is asked to choose a
+     * field to update. The user is then prompted to enter the new value. If the
+     * field is date of birth, the new value must be in the format "YYYY-MM-DD"
+     * and must be between 200 years ago and today. If the field is phone, the
+     * new value must be in the format "XXX-XXX-XXXX". If the field is email,
+     * the new value must be a valid email address. If the field is emergency
+     * contact name, the user is asked to enter both the first and last name.
+     * 
+     * @param conn  The database connection object.
+     * @param input The Scanner object for reading user input.
+     * @throws SQLException if a database access error occurs.
+     */
     private static void updateMember(Connection conn, Scanner input) throws SQLException {
         System.out.println("Enter member id to update");
         String memberIdString = input.nextLine();
@@ -482,7 +653,6 @@ public class Program4 {
 
         if (!memberExists(conn, memberId)) {
             System.out.println("Invalid member id. Member does not exist");
-            return;
         } else {
 
             System.out.println("Which field would you like to edit?");
@@ -535,7 +705,7 @@ public class Program4 {
                     return;
             }
 
-            String editMemberSql; // = "UPDATE Member SET " + field + " = ? WHERE MemberId = ?";
+            String editMemberSql;
 
             if (inputCase == 1) {
                 System.out.println(toPrint);
@@ -551,6 +721,23 @@ public class Program4 {
             } else if (inputCase == 2) {
                 System.out.println("Enter the updated date of birth (YYYY-MM-DD): ");
                 newVal1 = input.nextLine();
+                if (newVal1 == null)
+                    return;
+                try {
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+                    LocalDate birthday = LocalDate.parse(newVal1, formatter);
+                    LocalDate now = LocalDate.now();
+                    LocalDate oldest = now.minusYears(200);
+                    if (birthday.isAfter(now) || birthday.isBefore(oldest)) {
+                        System.out.println("Invalid birthday\nPress enter to continue");
+                        input.nextLine();
+                        return;
+                    }
+                } catch (DateTimeParseException e) {
+                    System.out.println("Invalid birthday\nPress enter to continue");
+                    input.nextLine();
+                    return;
+                }
                 editMemberSql = "UPDATE Member SET dob = TO_DATE(?, 'YYYY-MM-DD') WHERE MemberId = ?";
                 try (PreparedStatement stmt = conn.prepareStatement(editMemberSql)) {
                     stmt.setString(1, newVal1);
@@ -577,6 +764,25 @@ public class Program4 {
         }
     }
 
+    /**
+     * Deletes a member from the database.
+     *
+     * The user is first prompted to enter the member id of the member to delete.
+     * If the member does not exist, an error message is displayed.
+     * If the member exists, the program checks if the member has any active ski
+     * passes, active lesson purchases, or
+     * active rentals. If any of these are found, an error message is displayed and
+     * the deletion is not performed.
+     * If no active ski passes, active lesson purchases, or active rentals are
+     * found, the program asks the user to
+     * confirm that they want to delete the account. If the user enters 'y', the
+     * account is deleted. If the user
+     * enters 'n', the deletion is cancelled.
+     *
+     * @param conn  the database connection
+     * @param input the Scanner object for reading user input
+     * @throws SQLException if a database error occurs
+     */
     private static void deleteMember(Connection conn, Scanner input) throws SQLException {
         System.out.println("Enter member id to delete");
         String memberIdString = input.nextLine();
@@ -587,42 +793,37 @@ public class Program4 {
             System.out.println("Invalid member id. Must enter a number");
             return;
         }
-
         if (!memberExists(conn, memberId)) {
             System.out.println("Invalid member id. Member does not exist");
-            return;
         } else {
 
             boolean unableToReturn = false;
 
-            if (hasAny(conn,
-                    "SELECT 1 FROM skipass WHERE memberId = " + memberId + " AND EXPIRATIONDATE >= SYSDATE")) {
-                System.out.println("Active ski pass(es) present. Please delete or use them before deleting account");
+            if (hasAny(conn, "SELECT passid FROM skipass WHERE memberId = " + memberId, "PASSID",
+                    "Active ski pass(es) present. Please delete or use them before deleting account\n. Warning, you may not delete your account if you have used a lesson")) {
                 unableToReturn = true;
             }
 
             if (hasAny(conn,
-                    "SELECT 1 FROM lessonpurchase WHERE memberId = " + memberId + " AND remainingSessions > 0")) {
-                System.out.println(
-                        "Active lesson purchase(s) present. Please delete or use them before deleting account");
+                    "SELECT orderid FROM lessonpurchase WHERE memberId = " + memberId + " AND remainingSessions > 0",
+                    "ORDERID",
+                    "Active lesson purchase(s) present. Please delete or use them before deleting account")) {
                 unableToReturn = true;
             }
 
             if (hasAny(conn,
-                    "SELECT 1 FROM Rental r JOIN SKIPASS s ON r.passid = s.passid WHERE s.memberId = " + memberId
-                            + " AND r.returnStatus = 'Rented'")) {
-                System.out.println("Active rental(s) present. Please delete or use them before deleting account");
+                    "SELECT rid FROM Rental r JOIN SKIPASS s ON r.passid = s.passid WHERE s.memberId = " + memberId
+                            + " AND r.returnStatus = 'Rented'",
+                    "RID", "Active rental(s) present. Please delete or use them before deleting account")) {
                 unableToReturn = true;
             }
 
             if (unableToReturn) {
-                System.out.println("Unable to delete account yet. Press enter to continue");
+                System.out.println("Press enter to continue");
                 input.nextLine();
-                return;
-
             } else {
-                System.out.println("Are you sure you want to delete your account. This action is final");
-                System.out.println("Press 'y' to permanently delete your account");
+                System.out.println("Are you sure you want to delete the account. This action is final");
+                System.out.println("Press 'y' to permanently delete the account");
                 System.out.println("Press 'n' to cancel");
                 String selection = input.nextLine();
                 if (selection.compareTo("y") == 0) {
@@ -632,14 +833,24 @@ public class Program4 {
                         int rows = stmt.executeUpdate();
                         System.out.println(rows > 0 ? "Membership successfully deleted" : "Deletion failed.");
                     }
-                } else {
-                    return;
                 }
             }
         }
 
     }
 
+    /**
+     * Adds a new ski pass for a member into the SkiPass table.
+     * 
+     * Prompts the user to enter the member ID, expiration date, and select a pass
+     * type.
+     * Validates the member ID and pass type. Inserts the new ski pass record into
+     * the database.
+     * 
+     * @param conn  the database connection to use
+     * @param input the scanner to read user input
+     * @throws SQLException if a database error occurs
+     */
     private static void addSkiPass(Connection conn, Scanner input) throws SQLException {
 
         System.out.println("Member ID:");
@@ -683,8 +894,8 @@ public class Program4 {
                 return;
         }
 
-        String sql = "INSERT INTO SkiPass (memberId, purchaseDate, expirationDate, totalUses, type) " +
-                " VALUES (?, SYSDATE, TO_DATE(?, 'YYYY-MM-DD'), ?, ?)";
+        String sql = "INSERT INTO SkiPass (memberId, purchaseDate, expirationDate, totalUses, type) "
+                + " VALUES (?, SYSDATE, TO_DATE(?, 'YYYY-MM-DD'), ?, ?)";
         try (PreparedStatement stmt = conn.prepareStatement(sql, new String[] { "passId" })) {
             stmt.setInt(1, memberId);
             stmt.setString(2, expDate);
@@ -701,9 +912,19 @@ public class Program4 {
                 System.out.println("Failed to add new ski pass");
             }
         }
-
     }
 
+    /**
+     * Updates the total uses of a ski pass identified by the given pass ID.
+     * Prompts the user to enter the updated number of total uses.
+     * Validates the pass ID and ensures it exists in the database.
+     * Prints a message indicating the success or failure of the update operation.
+     *
+     * @param conn  the connection to the database
+     * @param input the scanner used to read the pass ID and new total uses from the
+     *              user
+     * @throws SQLException if a database error occurs
+     */
     private static void updateSkiPass(Connection conn, Scanner input) throws SQLException {
 
         System.out.println("Ski Pass Id:");
@@ -758,6 +979,21 @@ public class Program4 {
         }
     }
 
+    /**
+     * Deletes a ski pass by its pass id. Will only delete the pass if it has
+     * expired or has no remaining uses. If the pass has remaining uses,
+     * the user will be prompted to confirm deletion. If the pass has expired,
+     * the user will be prompted to confirm deletion. If the pass has expired
+     * and has remaining uses, the user will be prompted to confirm deletion.
+     * The user will also be prompted to confirm if the pass has been refunded.
+     * If the pass has been refunded, the user will be prompted to confirm
+     * deletion. If the pass has not been refunded, the user will not be
+     * prompted to confirm deletion.
+     * 
+     * @param conn  the database connection
+     * @param input the user's input
+     * @throws SQLException if a database error occurs
+     */
     private static void deleteSkiPass(Connection conn, Scanner input) throws SQLException {
 
         System.out.println("Ski Pass Id:");
@@ -787,37 +1023,60 @@ public class Program4 {
                 int memberId = rs.getInt("memberId");
                 java.sql.Date purchaseDate = rs.getDate("purchaseDate");
                 java.sql.Date expirationDate = rs.getDate("expirationDate");
+                System.out.println(expirationDate);
                 int totalUses = rs.getInt("totalUses");
                 String type = rs.getString("type");
+                int remainingUsesInt = 0;
                 String remainingUses = null;
                 switch (type) {
                     case "1 day":
-                        remainingUses = Integer.toString(1 - totalUses);
+                        remainingUsesInt = 1 - totalUses;
+                        if (remainingUsesInt < 0) {
+                            remainingUsesInt = 0;
+                        }
+                        remainingUses = Integer.toString(remainingUsesInt);
+
                         break;
                     case "2 day":
-                        remainingUses = Integer.toString(2 - totalUses);
+                        remainingUsesInt = 2 - totalUses;
+                        if (remainingUsesInt < 0) {
+                            remainingUsesInt = 0;
+                        }
+                        remainingUses = Integer.toString(remainingUsesInt);
                         break;
                     case "4 day":
-                        remainingUses = Integer.toString(4 - totalUses);
+                        remainingUsesInt = 3 - totalUses;
+                        if (remainingUsesInt < 0) {
+                            remainingUsesInt = 0;
+                        }
+                        remainingUses = Integer.toString(remainingUsesInt);
                         break;
                     case "season":
                         remainingUses = "inf";
                         break;
                 }
 
-                if (remainingUses.compareTo("0") == 0) {
+                String archiveSql = "INSERT INTO ArchivedPass ( passId, memberId, purchaseDate, expirationDate, "
+                        + "totalUses, type, archiveDate, archiveReason) VALUES (?, ?, ?, ?, ?, ?, SYSDATE, ?)";
+                if (expirationDate.before(java.sql.Date.valueOf(LocalDate.now()))) {
+                    System.out.println("Pass is expired");
+                    remainingUses = "0";
+                }
+                // System.out.println("Remaining uses is " + remainingUses);
+                if (remainingUses.compareTo("0") == 0 || remainingUses.compareTo("inf") == 0) {
                     if (!expirationDate.before(java.sql.Date.valueOf(LocalDate.now()))) {
                         System.out.println("Pass has not expired and cannot be deleted");
-                        return;
+                        // return;
                     } else {
                         System.out.println("Pass can be deleted. Are you sure you want to delete the pass?");
+                        if (remainingUses.compareTo("inf") == 0) {
+                            System.out.println("This is a season pass and can be used until the end of the season");
+                            System.out.println("Deletion is permanent");
+                        }
                         System.out.println("Enter 'y' to delete the pass, else enter anything");
                         String selection = input.nextLine();
                         if (selection.compareTo("y") == 0) {
 
-                            String archiveSql = "INSERT INTO ArchivedPass ( passId, memberId, purchaseDate, expirationDate, "
-                                    +
-                                    "totalUses, type, archiveDate, archiveReason) VALUES (?, ?, ?, ?, ?, ?, SYSDATE, ?)";
                             try (PreparedStatement archiveStmt = conn.prepareStatement(archiveSql)) {
                                 archiveStmt.setInt(1, passId);
                                 archiveStmt.setInt(2, memberId);
@@ -825,7 +1084,7 @@ public class Program4 {
                                 archiveStmt.setDate(4, expirationDate);
                                 archiveStmt.setInt(5, totalUses);
                                 archiveStmt.setString(6, type);
-                                archiveStmt.setString(7, "Expired");
+                                archiveStmt.setString(7, "Deleted");
                                 archiveStmt.executeUpdate();
                                 System.out.println("Ski pass archived.");
                             }
@@ -841,33 +1100,106 @@ public class Program4 {
                                     System.out.println("Ski pass deletion failed.");
                                 }
                             }
+
+                            return;
                         } else {
                             System.out.println("Pass not deleted");
+                            return;
                         }
 
                     }
                 } else {
                     System.out.println("Pass has days remaining and cannot be deleted");
-                    return;
+                }
+
+                System.out.println("Has the pass been refunded? y/n");
+                String refundInput = input.nextLine();
+                if (refundInput.compareTo("y") == 0) {
+                    System.out.println("Press 'y' again to delete the pass");
+                    System.out.println("Press 'n' to cancel");
+                    refundInput = input.nextLine();
+                    if (refundInput.compareTo("y") == 0) {
+
+                        try (PreparedStatement archiveStmt = conn.prepareStatement(archiveSql)) {
+                            archiveStmt.setInt(1, passId);
+                            archiveStmt.setInt(2, memberId);
+                            archiveStmt.setDate(3, purchaseDate);
+                            archiveStmt.setDate(4, expirationDate);
+                            archiveStmt.setInt(5, totalUses);
+                            archiveStmt.setString(6, type);
+                            archiveStmt.setString(7, "Expired");
+                            archiveStmt.executeUpdate();
+                            System.out.println("Ski pass archived.");
+                        }
+
+                        String deleteSql = " Delete from skipass where passid = ? ";
+                        try (PreparedStatement deleteStmt = conn.prepareStatement(deleteSql)) {
+                            deleteStmt.setInt(1, passId);
+                            int rows = deleteStmt.executeUpdate();
+
+                            if (rows > 0) {
+                                System.out.println("Ski pass deleted successfully.");
+                            } else {
+                                System.out.println("Ski pass deletion failed.");
+                            }
+                        }
+                    } else {
+                        System.out.println("Pass not deleted");
+                    }
                 }
             }
-
         }
     }
 
-    private static boolean hasAny(Connection conn, String sql) throws SQLException {
+    /**
+     * Runs a query, and if there are any results, prints out the message and the
+     * values of the given fieldName
+     * for each row of the results, and returns true. If there are no results,
+     * returns false.
+     * 
+     * @param conn      the database connection to use
+     * @param sql       the query to run
+     * @param fieldName the name of the field to print out
+     * @param message   the message to print out if there are any results
+     * @return true if there were any results, false if there were no results
+     * @throws SQLException if there is a problem with the database
+     */
+    private static boolean hasAny(Connection conn, String sql, String fieldName, String message) throws SQLException {
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             try (ResultSet rs = stmt.executeQuery()) {
-                return rs.next();
+                if (rs.next()) {
+                    System.out.println("\n\n" + message);
+                    do {
+                        System.out.println(fieldName + ": " + rs.getString(fieldName));
+                    } while (rs.next());
+                    return true;
+                } else {
+                    return false;
+                }
             }
         }
 
     }
 
+    /**
+     * Creates a new rental record for the given ski pass ID and equipment ID. If
+     * the pass ID is invalid, the pass has expired, or the equipment ID is
+     * invalid, the rental record is not created and an appropriate error message
+     * is displayed. If the equipment is not available for rental, an error
+     * message is displayed. If the rental record is created successfully, the
+     * rental ID is displayed. The equipment record is updated to link it to this
+     * rental, and the change is logged. If any database operation fails, the
+     * transaction is rolled back and an error message is displayed.
+     * 
+     * @param conn  The database connection object.
+     * @param input The Scanner object for reading user input.
+     * @throws SQLException If a database access error occurs.
+     */
     private static void addEquipmentRental(Connection conn, Scanner input) throws SQLException {
         // SQL for selecting current equipment details
         String selectSql = "SELECT eType, eSize, eStatus FROM Equipment WHERE EID = ?";
         String oldType, oldSize, oldStatus;
+
         System.out.println("Enter Ski Pass ID:");
         String passIdString = input.nextLine();
 
@@ -983,6 +1315,17 @@ public class Program4 {
         logEquipmentChange(conn, equipmentId, oldType, oldType, oldSize, oldSize, oldStatus, newStatus);
     }
 
+    /**
+     * Updates a rental record with the given rental ID to indicate that the
+     * equipment has been returned.
+     * Updates the associated equipment record to indicate that it is available for
+     * rental again.
+     * Logs the change in the RentalChangeLog table.
+     *
+     * @param conn  the connection to the database
+     * @param input the scanner used to read the rental ID from the user
+     * @throws SQLException if a database error occurs
+     */
     private static void updateRentalReturn(Connection conn, Scanner input) throws SQLException {
         // SQL for selecting current equipment details
         String selectSql = "SELECT eType, eSize, eStatus FROM Equipment WHERE EID = ?";
@@ -1101,6 +1444,18 @@ public class Program4 {
         }
     }
 
+    /**
+     * Deletes a rental record identified by the given rental ID.
+     * Ensures the rental record can only be deleted if the associated equipment
+     * has not been returned or used. Confirms the deletion action with the user.
+     * Updates the associated equipment record to indicate it is available for
+     * rental again. Logs the deletion in the RentalChangeLog and updates the
+     * equipment status change in the EquipmentChangeLog.
+     *
+     * @param conn  The database connection object.
+     * @param input The Scanner object for reading user input.
+     * @throws SQLException If a database access error occurs.
+     */
     private static void deleteRentalRecord(Connection conn, Scanner input) throws SQLException {
         // SQL for selecting current equipment details
         String selectSql = "SELECT eType, eSize, eStatus FROM Equipment WHERE EID = ?";
@@ -1163,7 +1518,7 @@ public class Program4 {
                 try (PreparedStatement sel = conn.prepareStatement(selectSql)) {
                     sel.setInt(1, equipmentId);
                     try (ResultSet ers = sel.executeQuery()) {
-                        if (!rs.next())
+                        if (!ers.next())
                             throw new SQLException("Equipment not found for EID=" + equipmentId);
                         oldType = ers.getString("eType");
                         oldSize = ers.getString("eSize");
@@ -1189,7 +1544,7 @@ public class Program4 {
             findPstmt.close();
 
             // Log the deletion
-            String logDeleteSQL = "INSERT INTO RentalChangeLog (RID, action, date) VALUES (?, 'Delete', SYSDATE)";
+            String logDeleteSQL = "INSERT INTO RentalChangeLog (RID, action, rentalChangeDate) VALUES (?, 'Delete', SYSDATE)";
             PreparedStatement logPstmt = conn.prepareStatement(logDeleteSQL);
             logPstmt.setInt(1, rentalId);
             logPstmt.executeUpdate();
@@ -1226,6 +1581,18 @@ public class Program4 {
         }
     }
 
+    /**
+     * This is the main method of the Program4 class.
+     * It provides a menu to the user to either edit the database or run sample
+     * queries.
+     * If the user chooses to edit the database, they will be presented with a menu
+     * with 16 options.
+     * If the user chooses to run sample queries, they will be presented with a menu
+     * with 5 options.
+     * If the user enters an invalid option, they will be prompted to enter a valid
+     * option.
+     * The program will continue to run until the user chooses to exit.
+     */
     public static void main(String[] args) {
         String username = "eduardoh12";
         String password = "a3769";
@@ -1360,7 +1727,7 @@ public class Program4 {
             case "3":
                 System.out.print("Enter Order ID to delete: ");
                 int deleteOrderId = Integer.parseInt(input.nextLine());
-                deleteLessonPurchase(conn, deleteOrderId);
+                deleteLessonPurchase(conn, deleteOrderId, input);
                 break;
             case "4":
                 addMember(conn, input);
@@ -1394,7 +1761,7 @@ public class Program4 {
             case "11":
                 System.out.println("Enter Equipment ID to update:");
                 int eidUpdate = Integer.parseInt(input.nextLine().trim());
-                updateEquipmentItem(conn, eidUpdate);
+                updateEquipmentItem(conn, eidUpdate, input);
                 break;
             case "12":
                 System.out.println("Please enter the following information:");

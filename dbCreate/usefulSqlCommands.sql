@@ -12,4 +12,4 @@ FROM user_sequences;
 
 set pagesize 50000
 
-set linesize 500
+set linesize 1000

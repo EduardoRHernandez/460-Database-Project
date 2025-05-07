@@ -1,6 +1,6 @@
 CREATE TABLE LessonLog (
     lessonLogId NUMBER PRIMARY KEY,
-    orderId NUMBER NOT NULL REFERENCES LessonPurchase(orderId),
+    orderId NUMBER NOT NULL REFERENCES LessonPurchase(orderId) on delete cascade,
     useDate DATE
 );
 
