@@ -359,7 +359,7 @@ public class Program4 {
 	 * 
 	 *---------------------------------------------------------------------*/
 	private static void deleteLessonPurchase(Connection conn, int orderId, Scanner input) throws SQLException {
-		String deleteSQL = "DELETE FROM LessonPurchase WHERE orderId = ? AND remainingSessions = totalSessions";
+		String deleteSQL = "DELETE FROM LessonPurchase WHERE orderId = ? AND (remainingSessions = totalSessions OR remainingSessions = 0)";;
 		try (PreparedStatement pstmt = conn.prepareStatement(deleteSQL)) {
 			pstmt.setInt(1, orderId);
 			int rowsAffected = pstmt.executeUpdate();
@@ -1692,8 +1692,8 @@ public class Program4 {
 	 * 
 	 *---------------------------------------------------------------------*/
 	public static void main(String[] args) {
-		String username = "eduardoh12";
-		String password = "a3769";
+        String username = "eduardoh12";
+        String password = "a3769";
 
 		try {
 			Class.forName("oracle.jdbc.OracleDriver");
@@ -1713,12 +1713,13 @@ public class Program4 {
 			if (editChoice.equals("y")) {
 				while (true) {
 					System.out.println("\nLesson Purchase Management");
-					System.out.println("1. Add Lesson Purchase");
-					System.out.println("2. Update Lesson Purchase");
-					System.out.println("3. Delete Lesson Purchase");
-					System.out.println("4. Add Member");
-					System.out.println("5. Update Member");
-					System.out.println("6. Delete Member");
+
+					System.out.println("1. Add Member");
+					System.out.println("2. Update Member");
+					System.out.println("3. Delete Member");
+                    System.out.println("4. Add Lesson Purchase");
+					System.out.println("5. Update Lesson Purchase");
+					System.out.println("6. Delete Lesson Purchase");
 					System.out.println("7. Add Ski Pass");
 					System.out.println("8. Update Ski Pass");
 					System.out.println("9. Delete Ski Pass");
@@ -1733,7 +1734,16 @@ public class Program4 {
 
 					String choice = input.nextLine();
 					switch (choice) {
-					case "1":
+                    case "1":
+						addMember(conn, input);
+						break;
+					case "2":
+						updateMember(conn, input);
+						break;
+					case "3":
+						deleteMember(conn, input);
+						break;
+					case "4":
 						try {
 							System.out.print("Enter Order ID: ");
 							int orderId = Integer.parseInt(input.nextLine());
@@ -1751,10 +1761,9 @@ public class Program4 {
 									pricePerSession);
 						} catch (NumberFormatException e) {
 							System.out.println("Invalid input");
-							return;
 						}
 						break;
-					case "2":
+					case "5":
 						try {
 							System.out.print("Enter Order ID to update: ");
 							int updateOrderId = Integer.parseInt(input.nextLine());
@@ -1763,27 +1772,18 @@ public class Program4 {
 							updateLessonPurchase(conn, updateOrderId, newRemainingSessions);
 						} catch (NumberFormatException e) {
 							System.out.println("Invalid input");
-							return;
+							
 						}
 						break;
-					case "3":
+					case "6":
 						try {
 							System.out.print("Enter Order ID to delete: ");
 							int deleteOrderId = Integer.parseInt(input.nextLine());
 							deleteLessonPurchase(conn, deleteOrderId, input);
 						} catch (NumberFormatException e) {
 							System.out.println("Invalid input");
-							return;
+							
 						}
-						break;
-					case "4":
-						addMember(conn, input);
-						break;
-					case "5":
-						updateMember(conn, input);
-						break;
-					case "6":
-						deleteMember(conn, input);
 						break;
 					case "7":
 						addSkiPass(conn, input);
