@@ -14,14 +14,15 @@ public class Program4 {
             "WHERE M.firstName = ? AND M.lastName = ?";
 
     private static final String QUERY2_STRING = "SELECT * FROM ( " +
-            "SELECT 'LIFT RIDE' AS SECTION, ll.passId AS REF_ID, ll.liftName AS DETAIL1, TO_CHAR(ll.liftLotDate, 'YYYY-MM-DD') AS DETAIL2, NULL AS DETAIL3 FROM LiftLog ll "
-            +
-            "UNION ALL SELECT 'RENTAL', r.passId, e.eType, e.eSize, r.returnStatus FROM Rental r JOIN Equipment e ON e.RID = r.RID "
-            +
-            "UNION ALL SELECT 'SKIPASS', s.passId, s.type, TO_CHAR(s.purchaseDate, 'YYYY-MM-DD'), TO_CHAR(s.expirationDate, 'YYYY-MM-DD') FROM SkiPass s "
-            +
-            "UNION ALL SELECT 'MEMBER', m.memberId, m.firstName || ' ' || m.lastName, m.phone, m.email FROM Member m " +
-            "UNION ALL SELECT 'LIFT', NULL, l.name, l.status, l.difficulty FROM Lift l ) WHERE REF_ID = ? OR REF_ID IS NULL";
+            "SELECT DISTINCT 'LIFT RIDE'      AS SECTION, ll.passId AS REF_ID, ll.liftName      AS DETAIL1, " +
+            "TO_CHAR(ll.liftLogDate,'YYYY-MM-DD HH24:MI:SS') AS DETAIL2, NULL            AS DETAIL3 " +
+            "FROM LiftLog ll " +
+            "UNION ALL " +
+            "SELECT 'EQUIPMENT RENTAL' AS SECTION, r.passId     AS REF_ID, e.eType||' '||e.eSize AS DETAIL1, " +
+            "TO_CHAR(r.rentalDate,'YYYY-MM-DD HH24:MI:SS')        AS DETAIL2, r.returnStatus  AS DETAIL3 " +
+            "FROM Rental r JOIN Equipment e ON e.RID = r.RID " +
+            ") WHERE REF_ID = ? " +
+            "ORDER BY DETAIL2";
 
     private static final String QUERY3_STRING = "SELECT t.name AS trail_name, t.category, l.name AS lift_name " +
             "FROM Trail t JOIN Lift l ON t.name = l.name " +
@@ -44,77 +45,150 @@ public class Program4 {
         return null;
     }
 
-    private static void insertEquipmentItem(Connection conn, int eid, int rid, String eTpe, String eSize,
-            String eStatus) throws SQLException {
-        String insertSQL = "INSERT INTO Equipment (EID, RID, eType, eSize, eStatus) VALUES (?, ?, ?, ?, ?)";
-        try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
-            pstmt.setInt(1, eid);
+    private static void insertEquipmentItem(Connection conn, int rid, String eTpe, String eSize, String eStatus)
+            throws SQLException {
+        String insertSQL = "INSERT INTO Equipment (RID, eType, eSize, eStatus) VALUES (?, ?, ?, ?)";
+        try (PreparedStatement pstmt = conn.prepareStatement(insertSQL, new String[] { "EID" })) {
             if (rid != 0) {
-                pstmt.setInt(2, rid);
+                pstmt.setInt(1, rid);
             } else {
-                pstmt.setNull(2, Types.INTEGER);
+                pstmt.setNull(1, Types.INTEGER);
             }
-            pstmt.setString(3, eTpe);
-            pstmt.setString(4, eSize);
-            pstmt.setString(5, eStatus);
+            pstmt.setString(2, eTpe);
+            pstmt.setString(3, eSize);
+            pstmt.setString(4, eStatus);
+
             int rowsAffected = pstmt.executeUpdate();
-            System.out
-                    .println(rowsAffected > 0 ? "Equipment item added successfully." : "Failed to add equipment item.");
-            conn.commit();
+            if (rowsAffected > 0) {
+                try (ResultSet rs = pstmt.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        System.out.println("Successfully inserted equipment. Equipment id -> " + rs.getInt(1));
+                    }
+                }
+            } else {
+                System.out.println("Failed to insert Equipment");
+            }
+        }
+    }
+
+    private static void logEquipmentChange(Connection conn, int eid, String oldType,
+            String newType, String oldSize, String newSize, String oldStatus, String newStatus) throws SQLException {
+        String sql = "INSERT INTO EquipmentChangeLog " +
+                "  (EID, oldType, newType, oldSize, newSize, oldStatus, newStatus) " +
+                "VALUES (?,    ?,       ?,       ?,       ?,       ?,         ?      )";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql, new String[] { "EChangeId" })) {
+            ps.setInt(1, eid);
+            ps.setString(2, oldType);
+            ps.setString(3, newType);
+            ps.setString(4, oldSize);
+            ps.setString(5, newSize);
+            ps.setString(6, oldStatus);
+            ps.setString(7, newStatus);
+            ps.executeUpdate();
+            try (ResultSet rs = ps.getGeneratedKeys()) {
+                if (rs.next()) {
+                    int changeId = rs.getInt(1);
+                    System.out.println("Logged equipment change: EChangeId=" + changeId);
+                }
+            }
         }
     }
 
     private static void updateEquipmentItem(Connection conn, int eid) throws SQLException {
+        String selectSql = "SELECT eType, eSize, eStatus FROM Equipment WHERE EID = ?";
+        String oldType, oldSize, oldStatus;
+        try (PreparedStatement sel = conn.prepareStatement(selectSql)) {
+            sel.setInt(1, eid);
+            try (ResultSet rs = sel.executeQuery()) {
+                if (!rs.next()) {
+                    System.out.println("No equipment item found with the provided EID.");
+                    return;
+                }
+                oldType = rs.getString("eType");
+                oldSize = rs.getString("eSize");
+                oldStatus = rs.getString("eStatus");
+            }
+        }
+
         Scanner sc = new Scanner(System.in);
-
-        String updateSQL = "";
-        String updateValue = "";
-
         System.out.println("Select attribute to update:");
         System.out.println("1. eStatus");
         System.out.println("2. eType");
         System.out.println("3. eSize");
-
         int choice = sc.nextInt();
         sc.nextLine(); // consume newline
 
+        String updateSQL;
+        String updateValue;
+        String newType = oldType;
+        String newSize = oldSize;
+        String newStatus = oldStatus;
+
         switch (choice) {
-            case 1:
+            case 1 -> {
                 System.out.print("Enter new eStatus: ");
                 updateValue = sc.nextLine().trim();
+                newStatus = updateValue;
                 updateSQL = "UPDATE Equipment SET eStatus = ? WHERE EID = ?";
-                break;
-            case 2:
+            }
+            case 2 -> {
                 System.out.print("Enter new eType: ");
                 updateValue = sc.nextLine().trim();
+                newType = updateValue;
                 updateSQL = "UPDATE Equipment SET eType = ? WHERE EID = ?";
-                break;
-            case 3:
+            }
+            case 3 -> {
                 System.out.print("Enter new eSize: ");
                 updateValue = sc.nextLine().trim();
+                newSize = updateValue;
                 updateSQL = "UPDATE Equipment SET eSize = ? WHERE EID = ?";
-                break;
-            default:
+            }
+            default -> {
                 System.out.println("Invalid choice.");
                 return;
+            }
         }
 
+        conn.setAutoCommit(false);
+        int rowsAffected;
         try (PreparedStatement pstmt = conn.prepareStatement(updateSQL)) {
             pstmt.setString(1, updateValue);
             pstmt.setInt(2, eid);
-
-            int rowsAffected = pstmt.executeUpdate();
-            System.out.println(rowsAffected > 0
-                    ? "Equipment item updated successfully."
-                    : "No equipment item found with the provided EID.");
-            conn.commit();
+            rowsAffected = pstmt.executeUpdate();
         }
+
+        if (rowsAffected > 0) {
+            logEquipmentChange(conn,
+                    eid,
+                    oldType, newType,
+                    oldSize, newSize,
+                    oldStatus, newStatus);
+            conn.commit();
+            System.out.println("Equipment item updated successfully.");
+        } else {
+            conn.rollback();
+            System.out.println("No equipment item found with the provided EID.");
+        }
+        conn.setAutoCommit(true);
     }
 
     private static void archiveEquipmentItem(Connection conn, int eid) throws SQLException {
+        String selectSql = "SELECT eType, eSize, eStatus FROM Equipment WHERE EID = ?";
+        String oldType, oldSize, oldStatus;
+        try (PreparedStatement sel = conn.prepareStatement(selectSql)) {
+            sel.setInt(1, eid);
+            try (ResultSet rs = sel.executeQuery()) {
+                if (!rs.next())
+                    throw new SQLException("Equipment not found for EID=" + eid);
+                oldType = rs.getString("eType");
+                oldSize = rs.getString("eSize");
+                oldStatus = rs.getString("eStatus");
+            }
+        }
         String statusCheckSQL = "SELECT eStatus FROM Equipment WHERE EID = ?";
         String eStatus = null;
-
+        conn.setAutoCommit(false);
         try (PreparedStatement statusStmt = conn.prepareStatement(statusCheckSQL)) {
             statusStmt.setInt(1, eid);
             ResultSet rs = statusStmt.executeQuery();
@@ -131,7 +205,7 @@ public class Program4 {
             return;
         }
 
-        String rentalCheckSQL = "SELECT COUNT(*) AS count FROM Rental WHERE EID = ? AND status IN ('Rented')";
+        String rentalCheckSQL = "SELECT COUNT(*) AS count FROM Rental WHERE RID = ? AND returnStatus IN ('Rented')";
         int activeCount = 0;
 
         try (PreparedStatement rentalStmt = conn.prepareStatement(rentalCheckSQL)) {
@@ -147,7 +221,7 @@ public class Program4 {
             return;
         }
 
-        String archiveSQL = "UPDATE Equipment SET eStatus = 'archived' WHERE EID = ?";
+        String archiveSQL = "UPDATE Equipment SET eStatus = 'Archived' WHERE EID = ?";
 
         try (PreparedStatement archiveStmt = conn.prepareStatement(archiveSQL)) {
             archiveStmt.setInt(1, eid);
@@ -155,7 +229,10 @@ public class Program4 {
             System.out.println(rowsAffected > 0 ? "Equipment item archived successfully."
                     : "Failed to archive equipment item.");
             conn.commit();
+            conn.setAutoCommit(true);
         }
+        String newStatus = "Archived";
+        logEquipmentChange(conn, eid, oldType, oldType, oldSize, oldSize, oldStatus, newStatus);
     }
 
     private static void addLessonPurchase(Connection conn, int orderId, int memberId, int lessonId, int totalSessions,
@@ -424,28 +501,7 @@ public class Program4 {
 
                 }
             }
-
-            // TEST CODE ONLY. DELETE THIS
-            String query = "SELECT * FROM Member";
-            try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(query)) {
-                ResultSetMetaData meta = rs.getMetaData();
-                int columnCount = meta.getColumnCount();
-
-                System.out.println("\n=== Member Table ===");
-
-                while (rs.next()) {
-                    System.out.println("-------------------------------");
-                    for (int i = 1; i <= columnCount; i++) {
-                        String colName = meta.getColumnName(i);
-                        String value = rs.getString(i);
-                        System.out.printf("%-20s: %s%n", colName, value);
-                    }
-                }
-
-                System.out.println("-------------------------------");
-            }
         }
-
     }
 
     private static void deleteMember(Connection conn, Scanner input) throws SQLException {
@@ -1238,15 +1294,14 @@ public class Program4 {
                             break;
                         case "10":
                             System.out.println("Please enter the following information:");
-                            System.out.println("EID, RID, eType, eSize, eStatus [enter 0 for null RID]");
+                            System.out.println("RID, eType, eSize, eStatus [enter 0 for null RID]");
                             String equipment = input.nextLine();
                             String[] parts = equipment.split(",");
-                            int eid = Integer.parseInt(parts[0].trim());
-                            int rid = Integer.parseInt(parts[1].trim());
-                            String etype = parts[2].trim();
-                            String esize = parts[3].trim();
-                            String estatus = parts[4].trim();
-                            insertEquipmentItem(conn, eid, rid, etype, esize, estatus);
+                            int rid = Integer.parseInt(parts[0].trim());
+                            String etype = parts[1].trim();
+                            String esize = parts[2].trim();
+                            String estatus = parts[3].trim();
+                            insertEquipmentItem(conn, rid, etype, esize, estatus);
                             break;
                         case "11":
                             System.out.println("Enter Equipment ID to update:");
@@ -1300,8 +1355,10 @@ public class Program4 {
                                 try (ResultSet rs = stmt.executeQuery()) {
                                     while (rs.next()) {
                                         System.out.printf("[%s] ID: %s | %s | %s | %s%n",
-                                                rs.getString("SECTION"), rs.getString("REF_ID"),
-                                                rs.getString("DETAIL1"), rs.getString("DETAIL2"),
+                                                rs.getString("SECTION"),
+                                                rs.getString("REF_ID"),
+                                                rs.getString("DETAIL1"),
+                                                rs.getString("DETAIL2"),
                                                 rs.getString("DETAIL3"));
                                     }
                                 }
