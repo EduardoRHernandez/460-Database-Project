@@ -8,3 +8,14 @@ CREATE TABLE RentalChangeLog (
     oldReturnStatus VARCHAR2(20),
     newReturnStatus VARCHAR2(20)
 );
+
+
+CREATE SEQUENCE rentalChangeLog_seq START WITH 1 INCREMENT BY 1;
+
+CREATE OR REPLACE TRIGGER rentalChangeLog_before_insert
+BEFORE INSERT ON RentalChangeLog
+FOR EACH ROW
+BEGIN
+    SELECT rentalChangeLog_seq.NEXTVAL INTO :new.rChangeId FROM dual;
+END;
+/
