@@ -49,46 +49,54 @@ public class Program4 {
         String insertSQL = "INSERT INTO Equipment (EID, RID, eType, eSize, eStatus) VALUES (?, ?, ?, ?, ?)";
         try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
             pstmt.setInt(1, eid);
-            pstmt.setInt(2, rid);
+            if (rid != 0) {
+                pstmt.setInt(2, rid);
+            } else {
+                pstmt.setNull(2, Types.INTEGER);
+            }
             pstmt.setString(3, eTpe);
             pstmt.setString(4, eSize);
             pstmt.setString(5, eStatus);
             int rowsAffected = pstmt.executeUpdate();
             System.out
                     .println(rowsAffected > 0 ? "Equipment item added successfully." : "Failed to add equipment item.");
+            conn.commit();
         }
     }
 
-    private static void updateEquipmentItem(Connection conn, int eid, String eStatus, String eType,
-            String eSize) throws SQLException {
+    private static void updateEquipmentItem(Connection conn, int eid) throws SQLException {
+        Scanner sc = new Scanner(System.in);
+
         String updateSQL = "";
         String updateValue = "";
 
-        System.out.println("What would you like to update?");
-        System.out.println("""
-                1. eStatus
-                2. eType
-                3. eSize
-                """);
+        System.out.println("Select attribute to update:");
+        System.out.println("1. eStatus");
+        System.out.println("2. eType");
+        System.out.println("3. eSize");
 
-        Scanner sc = new Scanner(System.in);
         int choice = sc.nextInt();
-        sc.nextLine();
+        sc.nextLine(); // consume newline
 
         switch (choice) {
-            case 1 -> {
+            case 1:
+                System.out.print("Enter new eStatus: ");
+                updateValue = sc.nextLine().trim();
                 updateSQL = "UPDATE Equipment SET eStatus = ? WHERE EID = ?";
-                updateValue = eStatus;
-            }
-            case 2 -> {
+                break;
+            case 2:
+                System.out.print("Enter new eType: ");
+                updateValue = sc.nextLine().trim();
                 updateSQL = "UPDATE Equipment SET eType = ? WHERE EID = ?";
-                updateValue = eType;
-            }
-            case 3 -> {
+                break;
+            case 3:
+                System.out.print("Enter new eSize: ");
+                updateValue = sc.nextLine().trim();
                 updateSQL = "UPDATE Equipment SET eSize = ? WHERE EID = ?";
-                updateValue = eSize;
-            }
-            default -> System.out.println("Invalid choice.");
+                break;
+            default:
+                System.out.println("Invalid choice.");
+                return;
         }
 
         try (PreparedStatement pstmt = conn.prepareStatement(updateSQL)) {
@@ -96,8 +104,10 @@ public class Program4 {
             pstmt.setInt(2, eid);
 
             int rowsAffected = pstmt.executeUpdate();
-            System.out.println(rowsAffected > 0 ? "Equipment item updated successfully."
+            System.out.println(rowsAffected > 0
+                    ? "Equipment item updated successfully."
                     : "No equipment item found with the provided EID.");
+            conn.commit();
         }
     }
 
@@ -144,6 +154,7 @@ public class Program4 {
             int rowsAffected = archiveStmt.executeUpdate();
             System.out.println(rowsAffected > 0 ? "Equipment item archived successfully."
                     : "Failed to archive equipment item.");
+            conn.commit();
         }
     }
 
@@ -1227,7 +1238,7 @@ public class Program4 {
                             break;
                         case "10":
                             System.out.println("Please enter the following information:");
-                            System.out.println("EID, RID, eType, eSize, eStatus");
+                            System.out.println("EID, RID, eType, eSize, eStatus [enter 0 for null RID]");
                             String equipment = input.nextLine();
                             String[] parts = equipment.split(",");
                             int eid = Integer.parseInt(parts[0].trim());
@@ -1238,15 +1249,9 @@ public class Program4 {
                             insertEquipmentItem(conn, eid, rid, etype, esize, estatus);
                             break;
                         case "11":
-                            System.out.println("Please enter the following information:");
-                            System.out.println("EID, eType, eSize, eStatus");
-                            String equipmentUpdate = input.nextLine();
-                            String[] partsUpdate = equipmentUpdate.split(",");
-                            int eidUpdate = Integer.parseInt(partsUpdate[0].trim());
-                            String etypeUpdate = partsUpdate[1].trim();
-                            String esizeUpdate = partsUpdate[2].trim();
-                            String estatusUpdate = partsUpdate[3].trim();
-                            updateEquipmentItem(conn, eidUpdate, estatusUpdate, etypeUpdate, esizeUpdate);
+                            System.out.println("Enter Equipment ID to update:");
+                            int eidUpdate = Integer.parseInt(input.nextLine().trim());
+                            updateEquipmentItem(conn, eidUpdate);
                             break;
                         case "12":
                             System.out.println("Please enter the following information:");
