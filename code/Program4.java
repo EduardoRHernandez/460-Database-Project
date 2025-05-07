@@ -1,8 +1,16 @@
+
+/***
+ * File: Program4.java
+ * Authors: Zachary Astrowsky, Steven George, Eduardo Hernandez, Vickram Sullhan
+ * Description: 
+ */
+
 import java.sql.*;
 import java.util.*;
 import java.time.LocalDate;
 
 public class Program4 {
+    // Queries
     private static final String QUERY1_STRING = "SELECT LP.orderId, LP.totalSessions, LP.remainingSessions, LP.pricePerSession, "
             +
             "L.lessonId, L.ageType, L.lessonType, L.durationType, L.startTime, " +
@@ -14,12 +22,12 @@ public class Program4 {
             "WHERE M.firstName = ? AND M.lastName = ?";
 
     private static final String QUERY2_STRING = "SELECT * FROM ( " +
-            "SELECT DISTINCT 'LIFT RIDE'      AS SECTION, ll.passId AS REF_ID, ll.liftName      AS DETAIL1, " +
-            "TO_CHAR(ll.liftLogDate,'YYYY-MM-DD HH24:MI:SS') AS DETAIL2, NULL            AS DETAIL3 " +
+            "SELECT DISTINCT 'LIFT RIDE' AS SECTION, ll.passId AS REF_ID, ll.liftName AS DETAIL1, " +
+            "TO_CHAR(ll.liftLogDate,'YYYY-MM-DD HH24:MI:SS') AS DETAIL2, NULL AS DETAIL3 " +
             "FROM LiftLog ll " +
             "UNION ALL " +
-            "SELECT 'EQUIPMENT RENTAL' AS SECTION, r.passId     AS REF_ID, e.eType||' '||e.eSize AS DETAIL1, " +
-            "TO_CHAR(r.rentalDate,'YYYY-MM-DD HH24:MI:SS')        AS DETAIL2, r.returnStatus  AS DETAIL3 " +
+            "SELECT 'EQUIPMENT RENTAL' AS SECTION, r.passId AS REF_ID, e.eType||' '||e.eSize AS DETAIL1, " +
+            "TO_CHAR(r.rentalDate,'YYYY-MM-DD HH24:MI:SS') AS DETAIL2, r.returnStatus  AS DETAIL3 " +
             "FROM Rental r JOIN Equipment e ON e.RID = r.RID " +
             ") WHERE REF_ID = ? " +
             "ORDER BY DETAIL2";
@@ -34,6 +42,14 @@ public class Program4 {
             +
             "FROM EquipmentChangeLog log JOIN Equipment eq ON log.EID = eq.EID WHERE eq.EID = ? ORDER BY log.changeDate DESC";
 
+    /**
+     * Attempts to connect to the database using the given username and password.
+     * If unable to connect, prints the error message and exits the program.
+     * 
+     * @param username the desired username
+     * @param password the desired password
+     * @return the connection or null if unable to connect
+     */
     private static Connection getConnection(String username, String password) {
         final String oracleURL = "jdbc:oracle:thin:@aloe.cs.arizona.edu:1521:oracle";
         try {
@@ -45,6 +61,16 @@ public class Program4 {
         return null;
     }
 
+    /**
+     * Inserts a new equipment item into the database with the given parameters.
+     * 
+     * @param conn    the connection to the database
+     * @param rid     the rental id associated with the equipment item
+     * @param eTpe    the type of the equipment item
+     * @param eSize   the size of the equipment item
+     * @param eStatus the status of the equipment item
+     * @throws SQLException if a database error occurs
+     */
     private static void insertEquipmentItem(Connection conn, int rid, String eTpe, String eSize, String eStatus)
             throws SQLException {
         String insertSQL = "INSERT INTO Equipment (RID, eType, eSize, eStatus) VALUES (?, ?, ?, ?)";
@@ -71,6 +97,19 @@ public class Program4 {
         }
     }
 
+    /**
+     * Logs an equipment change into the EquipmentChangeLog table.
+     *
+     * @param conn      the connection to the database
+     * @param eid       the equipment id of the item that was changed
+     * @param oldType   the old type of the equipment item
+     * @param newType   the new type of the equipment item
+     * @param oldSize   the old size of the equipment item
+     * @param newSize   the new size of the equipment item
+     * @param oldStatus the old status of the equipment item
+     * @param newStatus the new status of the equipment item
+     * @throws SQLException if a database error occurs
+     */
     private static void logEquipmentChange(Connection conn, int eid, String oldType,
             String newType, String oldSize, String newSize, String oldStatus, String newStatus) throws SQLException {
         String sql = "INSERT INTO EquipmentChangeLog " +
@@ -95,9 +134,21 @@ public class Program4 {
         }
     }
 
+    /**
+     * Updates an equipment item in the Equipment table by allowing the user to
+     * change one of its attributes.
+     * Logs the change in the EquipmentChangeLog table if the update is successful.
+     *
+     * @param conn the connection to the database
+     * @param eid  the equipment id of the item to update
+     * @throws SQLException if a database error occurs
+     */
     private static void updateEquipmentItem(Connection conn, int eid) throws SQLException {
+        // SQL to select current equipment details
         String selectSql = "SELECT eType, eSize, eStatus FROM Equipment WHERE EID = ?";
         String oldType, oldSize, oldStatus;
+
+        // Retrieve current details of the equipment
         try (PreparedStatement sel = conn.prepareStatement(selectSql)) {
             sel.setInt(1, eid);
             try (ResultSet rs = sel.executeQuery()) {
@@ -111,6 +162,7 @@ public class Program4 {
             }
         }
 
+        // Prompt user to select which attribute to update
         Scanner sc = new Scanner(System.in);
         System.out.println("Select attribute to update:");
         System.out.println("1. eStatus");
@@ -125,6 +177,7 @@ public class Program4 {
         String newSize = oldSize;
         String newStatus = oldStatus;
 
+        // Determine the update query based on the user's choice
         switch (choice) {
             case 1 -> {
                 System.out.print("Enter new eStatus: ");
@@ -150,14 +203,18 @@ public class Program4 {
             }
         }
 
+        // Start transaction
         conn.setAutoCommit(false);
         int rowsAffected;
+
+        // Execute the update statement
         try (PreparedStatement pstmt = conn.prepareStatement(updateSQL)) {
             pstmt.setString(1, updateValue);
             pstmt.setInt(2, eid);
             rowsAffected = pstmt.executeUpdate();
         }
 
+        // If update is successful, log the change and commit the transaction
         if (rowsAffected > 0) {
             logEquipmentChange(conn,
                     eid,
@@ -167,15 +224,27 @@ public class Program4 {
             conn.commit();
             System.out.println("Equipment item updated successfully.");
         } else {
+            // Rollback if no rows were updated
             conn.rollback();
             System.out.println("No equipment item found with the provided EID.");
         }
-        conn.setAutoCommit(true);
+        conn.setAutoCommit(true); // Reset auto-commit to true
     }
 
+    /**
+     * Archives an equipment item by updating its status to 'Archived'.
+     * Logs the change in the EquipmentChangeLog table.
+     *
+     * @param conn the connection to the database
+     * @param eid  the equipment id of the item to archive
+     * @throws SQLException if a database error occurs
+     */
     private static void archiveEquipmentItem(Connection conn, int eid) throws SQLException {
+        // SQL for selecting current equipment details
         String selectSql = "SELECT eType, eSize, eStatus FROM Equipment WHERE EID = ?";
         String oldType, oldSize, oldStatus;
+
+        // Retrieve current equipment details
         try (PreparedStatement sel = conn.prepareStatement(selectSql)) {
             sel.setInt(1, eid);
             try (ResultSet rs = sel.executeQuery()) {
@@ -186,6 +255,8 @@ public class Program4 {
                 oldStatus = rs.getString("eStatus");
             }
         }
+
+        // Check equipment status
         String statusCheckSQL = "SELECT eStatus FROM Equipment WHERE EID = ?";
         String eStatus = null;
         conn.setAutoCommit(false);
@@ -200,14 +271,15 @@ public class Program4 {
             }
         }
 
+        // Ensure the equipment is either retired or lost before archiving
         if (!eStatus.equalsIgnoreCase("retired") && !eStatus.equalsIgnoreCase("lost")) {
             System.out.println("Deletion not allowed: Equipment must be retired or lost.");
             return;
         }
 
+        // Check if the equipment is currently rented
         String rentalCheckSQL = "SELECT COUNT(*) AS count FROM Rental WHERE RID = ? AND returnStatus IN ('Rented')";
         int activeCount = 0;
-
         try (PreparedStatement rentalStmt = conn.prepareStatement(rentalCheckSQL)) {
             rentalStmt.setInt(1, eid);
             ResultSet rs = rentalStmt.executeQuery();
@@ -216,13 +288,14 @@ public class Program4 {
             }
         }
 
+        // If equipment is rented, prevent archiving
         if (activeCount > 0) {
             System.out.println("Deletion not allowed: Equipment is currently rented.");
             return;
         }
 
+        // Archive the equipment by updating its status
         String archiveSQL = "UPDATE Equipment SET eStatus = 'Archived' WHERE EID = ?";
-
         try (PreparedStatement archiveStmt = conn.prepareStatement(archiveSQL)) {
             archiveStmt.setInt(1, eid);
             int rowsAffected = archiveStmt.executeUpdate();
@@ -231,6 +304,8 @@ public class Program4 {
             conn.commit();
             conn.setAutoCommit(true);
         }
+
+        // Log the change in the equipment status
         String newStatus = "Archived";
         logEquipmentChange(conn, eid, oldType, oldType, oldSize, oldSize, oldStatus, newStatus);
     }
@@ -368,8 +443,6 @@ public class Program4 {
             } else {
                 System.out.println("Failed to add member");
             }
-            // System.out.println(rowsAffected > 0 ? "Member added successfully." : "Failed
-            // to add member.");
         }
 
     }
@@ -563,27 +636,6 @@ public class Program4 {
                     return;
                 }
             }
-
-            // TEST CODE ONLY. DELETE THIS
-            // String query = "SELECT * FROM Member";
-            // try (Statement stmt = conn.createStatement(); ResultSet rs =
-            // stmt.executeQuery(query)) {
-            // ResultSetMetaData meta = rs.getMetaData();
-            // int columnCount = meta.getColumnCount();
-
-            // System.out.println("\n=== Member Table ===");
-
-            // while (rs.next()) {
-            // System.out.println("-------------------------------");
-            // for (int i = 1; i <= columnCount; i++) {
-            // String colName = meta.getColumnName(i);
-            // String value = rs.getString(i);
-            // System.out.printf("%-20s: %s%n", colName, value);
-            // }
-            // }
-
-            // System.out.println("-------------------------------");
-            // }
         }
 
     }
@@ -648,8 +700,6 @@ public class Program4 {
             } else {
                 System.out.println("Failed to add new ski pass");
             }
-            // System.out.println(rowsAffected > 0 ? "Member added successfully." : "Failed
-            // to add member.");
         }
 
     }
@@ -706,27 +756,6 @@ public class Program4 {
                 System.out.println("Could not update total uses.");
             }
         }
-
-        // TEST CODE ONLY. DELETE THIS
-        String query = "SELECT * FROM skipass";
-        try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(query)) {
-            ResultSetMetaData meta = rs.getMetaData();
-            int columnCount = meta.getColumnCount();
-
-            System.out.println("\n=== SkiPass Table ===");
-
-            while (rs.next()) {
-                System.out.println("-------------------------------");
-                for (int i = 1; i <= columnCount; i++) {
-                    String colName = meta.getColumnName(i);
-                    String value = rs.getString(i);
-                    System.out.printf("%-20s: %s%n", colName, value);
-                }
-            }
-
-            System.out.println("-------------------------------");
-        }
-
     }
 
     private static void deleteSkiPass(Connection conn, Scanner input) throws SQLException {
@@ -821,83 +850,9 @@ public class Program4 {
                     System.out.println("Pass has days remaining and cannot be deleted");
                     return;
                 }
-
-                // if (totalUses == 0){
-                // if (!expirationDate.before(java.sql.Date.valueOf(LocalDate.now()))){
-                // System.out.println("Pass has not expired and cannot be deleted");
-                // return;
-                // }
-                // else{
-                // System.out.println("Pass can be deleted. Are you sure you want to delete the
-                // pass?");
-
-                // }
-
-                // } else{
-                // System.out.println("Pass has days remaining and cannot be deleted");
-                // return;
-                // }
-
             }
 
         }
-
-        // String getDate = "SELECT totalUses FROM SkiPass WHERE passId = ?";
-        // try (PreparedStatement stmt = conn.prepareStatement(getTotalUses)) {
-        // stmt.setInt(1, passId);
-        // try (ResultSet rs = stmt.executeQuery()) {
-        // if (rs.next()) {
-        // int uses = rs.getInt("totalUses");
-        // System.out.println("Total uses for pass " + passId + ": " + uses);
-        // }
-        // }
-        // }
-
-        // System.out.println("Enter the updated number of total uses:");
-        // String newTotalString = input.nextLine();
-
-        // int newTotal;
-        // try {
-        // newTotal = Integer.parseInt(newTotalString);
-        // } catch (NumberFormatException e){
-        // System.out.println("Invalid total. Must enter a number >= 0");
-        // return;
-        // }
-
-        // String updateTotalUses = "UPDATE skipass SET totaluses = ? WHERE passId = ?";
-        // try (PreparedStatement stmt = conn.prepareStatement(updateTotalUses)) {
-        // stmt.setInt(1, newTotal);
-        // stmt.setInt(2, passId);
-
-        // int rows = stmt.executeUpdate();
-        // if (rows > 0) {
-        // System.out.println("Total uses updated successfully.");
-        // } else {
-        // System.out.println("Could not update total uses.");
-        // }
-        // }
-
-        // // TEST CODE ONLY. DELETE THIS
-        // String query = "SELECT * FROM skipass";
-        // try (Statement stmt = conn.createStatement(); ResultSet rs =
-        // stmt.executeQuery(query)) {
-        // ResultSetMetaData meta = rs.getMetaData();
-        // int columnCount = meta.getColumnCount();
-
-        // System.out.println("\n=== SkiPass Table ===");
-
-        // while (rs.next()) {
-        // System.out.println("-------------------------------");
-        // for (int i = 1; i <= columnCount; i++) {
-        // String colName = meta.getColumnName(i);
-        // String value = rs.getString(i);
-        // System.out.printf("%-20s: %s%n", colName, value);
-        // }
-        // }
-
-        // System.out.println("-------------------------------");
-        // }
-
     }
 
     private static boolean hasAny(Connection conn, String sql) throws SQLException {
@@ -910,6 +865,9 @@ public class Program4 {
     }
 
     private static void addEquipmentRental(Connection conn, Scanner input) throws SQLException {
+        // SQL for selecting current equipment details
+        String selectSql = "SELECT eType, eSize, eStatus FROM Equipment WHERE EID = ?";
+        String oldType, oldSize, oldStatus;
         System.out.println("Enter Ski Pass ID:");
         String passIdString = input.nextLine();
 
@@ -957,6 +915,18 @@ public class Program4 {
             if (!status.equalsIgnoreCase("Available")) {
                 System.out.println("Error: The equipment is not available for rental. Current status: " + status);
                 return;
+            }
+        }
+
+        // Retrieve current equipment details
+        try (PreparedStatement sel = conn.prepareStatement(selectSql)) {
+            sel.setInt(1, equipmentId);
+            try (ResultSet rs = sel.executeQuery()) {
+                if (!rs.next())
+                    throw new SQLException("Equipment not found for EID=" + equipmentId);
+                oldType = rs.getString("eType");
+                oldSize = rs.getString("eSize");
+                oldStatus = rs.getString("eStatus");
             }
         }
 
@@ -1008,9 +978,20 @@ public class Program4 {
         } finally {
             conn.setAutoCommit(true);
         }
+        // Log the change in the equipment status
+        String newStatus = "Rented";
+        logEquipmentChange(conn, equipmentId, oldType, oldType, oldSize, oldSize, oldStatus, newStatus);
     }
 
     private static void updateRentalReturn(Connection conn, Scanner input) throws SQLException {
+        // SQL for selecting current equipment details
+        String selectSql = "SELECT eType, eSize, eStatus FROM Equipment WHERE EID = ?";
+        String oldType = null;
+        String oldSize = null;
+        String oldStatus = null;
+
+        int equipmentId = 0;
+
         System.out.println("Enter Rental ID to update:");
         String rentalIdString = input.nextLine();
 
@@ -1058,7 +1039,19 @@ public class Program4 {
                 ResultSet rs = findPstmt.executeQuery();
 
                 if (rs.next()) {
-                    int equipmentId = rs.getInt("EID");
+                    equipmentId = rs.getInt("EID");
+
+                    // Retrieve current equipment details
+                    try (PreparedStatement sel = conn.prepareStatement(selectSql)) {
+                        sel.setInt(1, equipmentId);
+                        try (ResultSet ers = sel.executeQuery()) {
+                            if (!rs.next())
+                                throw new SQLException("Equipment not found for EID=" + equipmentId);
+                            oldType = ers.getString("eType");
+                            oldSize = ers.getString("eSize");
+                            oldStatus = ers.getString("eStatus");
+                        }
+                    }
 
                     // Update equipment status
                     String updateEquipmentSQL = "UPDATE Equipment SET RID = NULL, eStatus = 'Available' WHERE EID = ?";
@@ -1101,9 +1094,21 @@ public class Program4 {
         } finally {
             conn.setAutoCommit(true);
         }
+        if (equipmentId != 0 && oldStatus != null && oldType != null && oldSize != null) {
+            // Log the change in the equipment status
+            String newStatus = "Available";
+            logEquipmentChange(conn, equipmentId, oldType, oldType, oldSize, oldSize, oldStatus, newStatus);
+        }
     }
 
     private static void deleteRentalRecord(Connection conn, Scanner input) throws SQLException {
+        // SQL for selecting current equipment details
+        String selectSql = "SELECT eType, eSize, eStatus FROM Equipment WHERE EID = ?";
+        String oldType = null;
+        String oldSize = null;
+        String oldStatus = null;
+        int equipmentId = 0;
+
         System.out.println("Enter Rental ID to delete:");
         String rentalIdString = input.nextLine();
 
@@ -1152,7 +1157,19 @@ public class Program4 {
             ResultSet rs = findPstmt.executeQuery();
 
             if (rs.next()) {
-                int equipmentId = rs.getInt("EID");
+                equipmentId = rs.getInt("EID");
+
+                // Retrieve current equipment details
+                try (PreparedStatement sel = conn.prepareStatement(selectSql)) {
+                    sel.setInt(1, equipmentId);
+                    try (ResultSet ers = sel.executeQuery()) {
+                        if (!rs.next())
+                            throw new SQLException("Equipment not found for EID=" + equipmentId);
+                        oldType = ers.getString("eType");
+                        oldSize = ers.getString("eSize");
+                        oldStatus = ers.getString("eStatus");
+                    }
+                }
 
                 // Update equipment status to make it available again
                 String updateEquipmentSQL = "UPDATE Equipment SET RID = NULL, eStatus = 'Available' WHERE EID = ?";
@@ -1202,6 +1219,11 @@ public class Program4 {
         } finally {
             conn.setAutoCommit(true);
         }
+        if (equipmentId != 0 && oldStatus != null && oldType != null && oldSize != null) {
+            // Log the change in the equipment status
+            String newStatus = "Available";
+            logEquipmentChange(conn, equipmentId, oldType, oldType, oldSize, oldSize, oldStatus, newStatus);
+        }
     }
 
     public static void main(String[] args) {
@@ -1222,174 +1244,28 @@ public class Program4 {
         try (Connection conn = getConnection(username, password); Scanner input = new Scanner(System.in)) {
             System.out.print("Do you want to edit the database? (y/n): ");
             String editChoice = input.nextLine().trim().toLowerCase();
-
             if (editChoice.equals("y")) {
-                while (true) {
-                    System.out.println("\nLesson Purchase Management");
-                    System.out.println("1. Add Lesson Purchase");
-                    System.out.println("2. Update Lesson Purchase");
-                    System.out.println("3. Delete Lesson Purchase");
-                    System.out.println("4. Add Member");
-                    System.out.println("5. Update Member");
-                    System.out.println("6. Delete Member");
-                    System.out.println("7. Add Ski Pass");
-                    System.out.println("8. Update Ski Pass");
-                    System.out.println("9. Delete Ski Pass");
-                    System.out.println("10. Add Equipment");
-                    System.out.println("11. Update Equipment");
-                    System.out.println("12. Delete Equipment");
-                    System.out.println("13. Add Equipment Rental");
-                    System.out.println("14. Update Equipment Rental (Return)");
-                    System.out.println("15. Delete Equipment Rental");
-                    System.out.println("16. Exit");
-                    System.out.print("Select an option: ");
-
+                boolean exit = false;
+                while (!exit) {
+                    displayDBMenu();
                     String choice = input.nextLine();
-                    switch (choice) {
-                        case "1":
-                            System.out.print("Enter Order ID: ");
-                            int orderId = Integer.parseInt(input.nextLine());
-                            System.out.print("Enter Member ID: ");
-                            int memberId = Integer.parseInt(input.nextLine());
-                            System.out.print("Enter Lesson ID: ");
-                            int lessonId = Integer.parseInt(input.nextLine());
-                            System.out.print("Enter Total Sessions: ");
-                            int totalSessions = Integer.parseInt(input.nextLine());
-                            System.out.print("Enter Remaining Sessions: ");
-                            int remainingSessions = Integer.parseInt(input.nextLine());
-                            System.out.print("Enter Price per Session: ");
-                            double pricePerSession = Double.parseDouble(input.nextLine());
-                            addLessonPurchase(conn, orderId, memberId, lessonId, totalSessions, remainingSessions,
-                                    pricePerSession);
-                            break;
-                        case "2":
-                            System.out.print("Enter Order ID to update: ");
-                            int updateOrderId = Integer.parseInt(input.nextLine());
-                            System.out.print("Enter new Remaining Sessions: ");
-                            int newRemainingSessions = Integer.parseInt(input.nextLine());
-                            updateLessonPurchase(conn, updateOrderId, newRemainingSessions);
-                            break;
-                        case "3":
-                            System.out.print("Enter Order ID to delete: ");
-                            int deleteOrderId = Integer.parseInt(input.nextLine());
-                            deleteLessonPurchase(conn, deleteOrderId);
-                            break;
-                        case "4":
-                            addMember(conn, input);
-                            break;
-                        case "5":
-                            updateMember(conn, input);
-                            break;
-                        case "6":
-                            deleteMember(conn, input);
-                            break;
-                        case "7":
-                            addSkiPass(conn, input);
-                            break;
-                        case "8":
-                            updateSkiPass(conn, input);
-                            break;
-                        case "9":
-                            deleteSkiPass(conn, input);
-                            break;
-                        case "10":
-                            System.out.println("Please enter the following information:");
-                            System.out.println("RID, eType, eSize, eStatus [enter 0 for null RID]");
-                            String equipment = input.nextLine();
-                            String[] parts = equipment.split(",");
-                            int rid = Integer.parseInt(parts[0].trim());
-                            String etype = parts[1].trim();
-                            String esize = parts[2].trim();
-                            String estatus = parts[3].trim();
-                            insertEquipmentItem(conn, rid, etype, esize, estatus);
-                            break;
-                        case "11":
-                            System.out.println("Enter Equipment ID to update:");
-                            int eidUpdate = Integer.parseInt(input.nextLine().trim());
-                            updateEquipmentItem(conn, eidUpdate);
-                            break;
-                        case "12":
-                            System.out.println("Please enter the following information:");
-                            System.out.println("EID");
-                            String equipmentDelete = input.nextLine();
-                            String[] partsDelete = equipmentDelete.split(",");
-                            int eidDelete = Integer.parseInt(partsDelete[0].trim());
-                            archiveEquipmentItem(conn, eidDelete);
-                            break;
-                        case "13":
-                            addEquipmentRental(conn, input);
-                            break;
-                        case "14":
-                            updateRentalReturn(conn, input);
-                            break;
-                        case "15":
-                            deleteRentalRecord(conn, input);
-                            break;
-                        case "16":
-                            System.out.println("Goodbye!");
-                            return;
-                        default:
-                            System.out.println("Invalid choice. Try again.");
+                    if (choice.equals("16")) {
+                        System.out.println("Goodbye!");
+                        exit = true;
+                    } else {
+                        handleDBQueries(conn, input, choice);
                     }
                 }
             } else if (editChoice.equals("n")) {
-                while (true) {
-                    System.out.println("\nQuery Menu");
-                    System.out.println("1. Query 1 - Member Ski Lessons");
-                    System.out.println("2. Query 2 - Ski Pass Details");
-                    System.out.println("3. Query 3 - Intermediate Trails and Lifts");
-                    System.out.println("3. Query 4 - Equipment Change Log");
-                    System.out.println("5. Exit");
-                    System.out.print("Enter your choice: ");
+                boolean exit = false;
+                while (!exit) {
+                    displaySampleQueries();
                     String queryChoice = input.nextLine();
-
-                    switch (queryChoice) {
-                        case "1":
-                            runQuery1(conn, input);
-                            break;
-                        case "2":
-                            System.out.print("Enter passId: ");
-                            String passId = input.nextLine();
-                            try (PreparedStatement stmt = conn.prepareStatement(QUERY2_STRING)) {
-                                stmt.setString(1, passId);
-                                try (ResultSet rs = stmt.executeQuery()) {
-                                    while (rs.next()) {
-                                        System.out.printf("[%s] ID: %s | %s | %s | %s%n",
-                                                rs.getString("SECTION"),
-                                                rs.getString("REF_ID"),
-                                                rs.getString("DETAIL1"),
-                                                rs.getString("DETAIL2"),
-                                                rs.getString("DETAIL3"));
-                                    }
-                                }
-                            }
-                            break;
-                        case "3":
-                            try (PreparedStatement stmt = conn.prepareStatement(QUERY3_STRING);
-                                    ResultSet rs = stmt.executeQuery()) {
-                                while (rs.next()) {
-                                    System.out.printf("Trail: %s, Category: %s, Lift: %s%n",
-                                            rs.getString("trail_name"), rs.getString("category"),
-                                            rs.getString("lift_name"));
-                                }
-                            }
-                            break;
-                        case "4":
-                            System.out.print("Enter equipment id: ");
-                            String eId = input.nextLine();
-                            try {
-                                Integer.parseInt(eId);
-                            } catch (NumberFormatException e) {
-                                System.out.println("Invalid equipment id");
-                                return;
-                            }
-                            runQuery4(conn, eId);
-                            break;
-                        case "5":
-                            System.out.println("Goodbye!");
-                            return;
-                        default:
-                            System.out.println("Invalid choice.");
+                    if (queryChoice.equals("5")) {
+                        System.out.println("Goodbye!");
+                        exit = true;
+                    } else {
+                        handleSampleQueries(conn, input, queryChoice);
                     }
                 }
             } else {
@@ -1397,6 +1273,218 @@ public class Program4 {
             }
         } catch (SQLException e) {
             System.err.println("SQL Error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Displays the database management menu to the user.
+     * Provides options for managing lesson purchases, members, ski passes,
+     * equipment, and rentals.
+     */
+    private static void displayDBMenu() {
+        // Display menu header
+        System.out.println("\nLesson Purchase Management");
+
+        // Display options for lesson purchase management
+        System.out.println("1. Add Lesson Purchase");
+        System.out.println("2. Update Lesson Purchase");
+        System.out.println("3. Delete Lesson Purchase");
+
+        // Display options for member management
+        System.out.println("4. Add Member");
+        System.out.println("5. Update Member");
+        System.out.println("6. Delete Member");
+
+        // Display options for ski pass management
+        System.out.println("7. Add Ski Pass");
+        System.out.println("8. Update Ski Pass");
+        System.out.println("9. Delete Ski Pass");
+
+        // Display options for equipment management
+        System.out.println("10. Add Equipment");
+        System.out.println("11. Update Equipment");
+        System.out.println("12. Delete Equipment");
+
+        // Display options for equipment rental management
+        System.out.println("13. Add Equipment Rental");
+        System.out.println("14. Update Equipment Rental (Return)");
+        System.out.println("15. Delete Equipment Rental");
+
+        // Display exit option
+        System.out.println("16. Exit");
+
+        // Prompt user to select an option
+        System.out.print("Select an option: ");
+    }
+
+    /**
+     * Handles various database queries based on user input.
+     *
+     * This method provides an interface to manage lesson purchases, members, ski
+     * passes,
+     * equipment, and rentals within the database. It processes user choices and
+     * executes
+     * the corresponding database operations.
+     *
+     * @param conn   The database connection object.
+     * @param input  The Scanner object for reading user input.
+     * @param choice The user-selected option determining which operation to
+     *               perform.
+     * @throws SQLException if a database access error occurs.
+     */
+    private static void handleDBQueries(Connection conn, Scanner input, String choice) throws SQLException {
+        switch (choice) {
+            case "1":
+                System.out.print("Enter Order ID: ");
+                int orderId = Integer.parseInt(input.nextLine());
+                System.out.print("Enter Member ID: ");
+                int memberId = Integer.parseInt(input.nextLine());
+                System.out.print("Enter Lesson ID: ");
+                int lessonId = Integer.parseInt(input.nextLine());
+                System.out.print("Enter Total Sessions: ");
+                int totalSessions = Integer.parseInt(input.nextLine());
+                System.out.print("Enter Remaining Sessions: ");
+                int remainingSessions = Integer.parseInt(input.nextLine());
+                System.out.print("Enter Price per Session: ");
+                double pricePerSession = Double.parseDouble(input.nextLine());
+                addLessonPurchase(conn, orderId, memberId, lessonId, totalSessions, remainingSessions,
+                        pricePerSession);
+                break;
+            case "2":
+                System.out.print("Enter Order ID to update: ");
+                int updateOrderId = Integer.parseInt(input.nextLine());
+                System.out.print("Enter new Remaining Sessions: ");
+                int newRemainingSessions = Integer.parseInt(input.nextLine());
+                updateLessonPurchase(conn, updateOrderId, newRemainingSessions);
+                break;
+            case "3":
+                System.out.print("Enter Order ID to delete: ");
+                int deleteOrderId = Integer.parseInt(input.nextLine());
+                deleteLessonPurchase(conn, deleteOrderId);
+                break;
+            case "4":
+                addMember(conn, input);
+                break;
+            case "5":
+                updateMember(conn, input);
+                break;
+            case "6":
+                deleteMember(conn, input);
+                break;
+            case "7":
+                addSkiPass(conn, input);
+                break;
+            case "8":
+                updateSkiPass(conn, input);
+                break;
+            case "9":
+                deleteSkiPass(conn, input);
+                break;
+            case "10":
+                System.out.println("Please enter the following information:");
+                System.out.println("RID, eType, eSize, eStatus [enter 0 for null RID]");
+                String equipment = input.nextLine();
+                String[] parts = equipment.split(",");
+                int rid = Integer.parseInt(parts[0].trim());
+                String etype = parts[1].trim();
+                String esize = parts[2].trim();
+                String estatus = parts[3].trim();
+                insertEquipmentItem(conn, rid, etype, esize, estatus);
+                break;
+            case "11":
+                System.out.println("Enter Equipment ID to update:");
+                int eidUpdate = Integer.parseInt(input.nextLine().trim());
+                updateEquipmentItem(conn, eidUpdate);
+                break;
+            case "12":
+                System.out.println("Please enter the following information:");
+                System.out.println("EID");
+                String equipmentDelete = input.nextLine();
+                String[] partsDelete = equipmentDelete.split(",");
+                int eidDelete = Integer.parseInt(partsDelete[0].trim());
+                archiveEquipmentItem(conn, eidDelete);
+                break;
+            case "13":
+                addEquipmentRental(conn, input);
+                break;
+            case "14":
+                updateRentalReturn(conn, input);
+                break;
+            case "15":
+                deleteRentalRecord(conn, input);
+                break;
+            default:
+                System.out.println("Invalid choice. Try again.");
+        }
+    }
+
+    /**
+     * Display the query menu and prompt the user to enter their choice.
+     */
+    private static void displaySampleQueries() {
+        System.out.println("\nQuery Menu");
+        System.out.println("1. Query 1 - Member Ski Lessons");
+        System.out.println("2. Query 2 - Ski Pass Details");
+        System.out.println("3. Query 3 - Intermediate Trails and Lifts");
+        System.out.println("3. Query 4 - Equipment Change Log");
+        System.out.println("5. Exit");
+        System.out.print("Enter your choice: ");
+    }
+
+    /**
+     * Handles the sample queries in the menu by executing the corresponding
+     * SQL statement and displaying the results.
+     *
+     * @param conn   the database connection
+     * @param input  the scanner to read user input
+     * @param choice the choice number of the query to execute
+     * @throws SQLException if a database error occurs
+     */
+    private static void handleSampleQueries(Connection conn, Scanner input, String choice) throws SQLException {
+        switch (choice) {
+            case "1":
+                runQuery1(conn, input);
+                break;
+            case "2":
+                System.out.print("Enter passId: ");
+                String passId = input.nextLine();
+                try (PreparedStatement stmt = conn.prepareStatement(QUERY2_STRING)) {
+                    stmt.setString(1, passId);
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            System.out.printf("[%s] ID: %s | %s | %s | %s%n",
+                                    rs.getString("SECTION"),
+                                    rs.getString("REF_ID"),
+                                    rs.getString("DETAIL1"),
+                                    rs.getString("DETAIL2"),
+                                    rs.getString("DETAIL3"));
+                        }
+                    }
+                }
+                break;
+            case "3":
+                try (PreparedStatement stmt = conn.prepareStatement(QUERY3_STRING);
+                        ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) {
+                        System.out.printf("Trail: %s, Category: %s, Lift: %s%n",
+                                rs.getString("trail_name"), rs.getString("category"),
+                                rs.getString("lift_name"));
+                    }
+                }
+                break;
+            case "4":
+                System.out.print("Enter equipment id: ");
+                String eId = input.nextLine();
+                try {
+                    Integer.parseInt(eId);
+                } catch (NumberFormatException e) {
+                    System.out.println("Invalid equipment id");
+                    return;
+                }
+                runQuery4(conn, eId);
+                break;
+            default:
+                System.out.println("Invalid choice.");
         }
     }
 }
