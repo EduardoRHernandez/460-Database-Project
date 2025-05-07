@@ -264,13 +264,31 @@ public class Program4 {
         }
     }
 
-    private static void deleteLessonPurchase(Connection conn, int orderId) throws SQLException {
+    private static void deleteLessonPurchase(Connection conn, int orderId, Scanner input) throws SQLException {
         String deleteSQL = "DELETE FROM LessonPurchase WHERE orderId = ? AND remainingSessions = totalSessions";
         try (PreparedStatement pstmt = conn.prepareStatement(deleteSQL)) {
             pstmt.setInt(1, orderId);
             int rowsAffected = pstmt.executeUpdate();
-            System.out.println(rowsAffected > 0 ? "Lesson purchase deleted successfully."
-                    : "No eligible lesson purchase found to delete (must have zero sessions used).");
+            if (rowsAffected > 0){
+                System.out.println("Lesson purchases deleted successfully");
+            } else{
+                System.out.println( "No eligible lesson purchase found to delete (must have zero sessions used)." + 
+                    "\nAccount cannot be deleted. Admin Override? y/n");
+                String val = input.nextLine();
+                if (val.compareTo("y") == 0){
+                    try (PreparedStatement stmt = conn.prepareStatement("Delete from lessonpurchase where orderid = ?")) {
+                    stmt.setInt(1, orderId);
+                    rowsAffected = stmt.executeUpdate();
+                    System.out.println(rowsAffected > 0 ? "Lesson purchase deleted successfully."
+                            : "No lesson purchase found with the provided orderId.");
+                }
+                }
+
+            }
+           
+            
+
+            
         }
     }
 
@@ -882,7 +900,7 @@ public class Program4 {
                                 archiveStmt.setDate(4, expirationDate);
                                 archiveStmt.setInt(5, totalUses);
                                 archiveStmt.setString(6, type);
-                                archiveStmt.setString(7, "Expired");
+                                archiveStmt.setString(7, "Deleted");
                                 archiveStmt.executeUpdate();
                                 System.out.println("Ski pass archived.");
                             }
@@ -1422,7 +1440,7 @@ public class Program4 {
                             try{
                             System.out.print("Enter Order ID to delete: ");
                             int deleteOrderId = Integer.parseInt(input.nextLine());
-                            deleteLessonPurchase(conn, deleteOrderId);
+                            deleteLessonPurchase(conn, deleteOrderId, input);
                             } catch (NumberFormatException e) {
                                 System.out.println("Invalid input");
                                 return;
