@@ -17,13 +17,15 @@ import java.time.format.DateTimeParseException;
 
 public class Program4 {
     // Queries
-    private static final String QUERY1_STRING = "SELECT LP.orderId, LP.totalSessions, LP.remainingSessions, LP.pricePerSession, "
-            + "L.lessonId, L.ageType, L.lessonType, L.durationType, L.startTime, "
-            + "E.firstName AS instructorFirstName, E.lastName AS instructorLastName "
-            + "FROM LessonPurchase LP JOIN Lesson L ON LP.lessonId = L.lessonId "
-            + "JOIN Instructor I ON L.instructorId = I.instructorId "
-            + "JOIN Employee E ON I.instructorId = E.employeeId " + "JOIN Member M ON LP.memberId = M.memberId "
-            + "WHERE M.firstName = ? AND M.lastName = ?";
+    private static final String QUERY1_STRING = "SELECT LP.orderId, LP.totalSessions, LP.remainingSessions, LP.pricePerSession, " + 
+            "L.lessonId, L.ageType, L.lessonType, L.durationType, L.startTime, " + 
+            "E.firstName AS instructorFirstName, E.lastName AS instructorLastName " + 
+            "FROM LessonPurchase LP " + 
+            "JOIN Lesson L ON LP.lessonId = L.lessonId " + 
+            "JOIN Instructor I ON L.instructorId = I.instructorId " + 
+            "JOIN Employee E ON I.instructorId = E.employeeId " + 
+            "JOIN Member M ON LP.memberId = M.memberId " + 
+            "WHERE M.memberId = ?";   
 
     private static final String QUERY2_STRING = "SELECT * FROM ( " +
             "SELECT DISTINCT 'LIFT RIDE' AS SECTION, ll.passId AS REF_ID, ll.liftName AS DETAIL1, " +
@@ -414,27 +416,50 @@ public class Program4 {
      * @throws SQLException if a database error occurs
      */
     private static void runQuery1(Connection conn, Scanner input) throws SQLException {
-        System.out.print("Enter member first name: ");
-        String firstName = input.nextLine().trim();
+        // System.out.print("Enter member first name: ");
+        // String firstName = input.nextLine().trim();
 
-        System.out.print("Enter member last name: ");
-        String lastName = input.nextLine().trim();
+        // System.out.print("Enter member last name: ");
+        // String lastName = input.nextLine().trim();
+
+        System.out.print("Enter member id: ");
+        String in = input.nextLine().trim();
+        int memberId = 0;
+        try {
+            memberId = Integer.parseInt(in);
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid member id. Must enter a number");
+            return;
+        }
 
         System.out.println("\n=== Query 1: ===");
         try (PreparedStatement stmt = conn.prepareStatement(QUERY1_STRING)) {
-            stmt.setString(1, firstName);
-            stmt.setString(2, lastName);
+            stmt.setInt(1, memberId);
 
             try (ResultSet rs = stmt.executeQuery()) {
                 boolean hasResults = false;
                 while (rs.next()) {
                     hasResults = true;
-                    System.out.printf(
-                            "OrderID: %d, Sessions: %d/%d, Price: $%.2f, LessonID: %d, Age: %s, Type: %s, Duration: %s, Time: %s, Instructor: %s %s\n",
-                            rs.getInt("orderId"), rs.getInt("totalSessions"), rs.getInt("remainingSessions"),
-                            rs.getDouble("pricePerSession"), rs.getInt("lessonId"), rs.getString("ageType"),
-                            rs.getString("lessonType"), rs.getString("durationType"), rs.getString("startTime"),
-                            rs.getString("instructorFirstName"), rs.getString("instructorLastName"));
+                    System.out.println(String.format(
+                        "Order ID:     %d\n" +
+                        "Sessions:     %d/%d\n" +
+                        "Price:        $%.2f\n" +
+                        "Lesson ID:    %d\n" +
+                        "Age Group:    %s\n" +
+                        "Lesson Type:  %s\n" +
+                        "Duration:     %s\n" +
+                        "Time:         %s\n" +
+                        "Instructor:   %s %s\n",
+                        rs.getInt("orderId"),
+                        rs.getInt("remainingSessions"), rs.getInt("totalSessions"),
+                        rs.getDouble("pricePerSession"),
+                        rs.getInt("lessonId"),
+                        rs.getString("ageType"),
+                        rs.getString("lessonType"),
+                        rs.getString("durationType"),
+                        rs.getString("startTime"),
+                        rs.getString("instructorFirstName"), rs.getString("instructorLastName")
+                    ));
                 }
                 if (!hasResults) {
                     System.out.println("No lessons found for this member.");
