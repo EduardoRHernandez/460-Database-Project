@@ -2,10 +2,31 @@
 
 ### Authors
 
-- Zachary Astrowsky
-- Steven George
-- Eduardo Hernandez
-- Vickram Sullhan
+- **Zachary Astrowsky**:
+
+  - Developed Query 1 (Member Ski Lessons) and all Lesson Purchase related database operations.
+  - Designed database tables and constraints for Employees and Instructors.
+  - Implemented some initial SQL data inserts for testing.
+
+- **Steven George**:
+
+  - Created and normalized the Entity-Relationship (E-R) Diagram for database schema.
+  - Developed Query 4 (Equipment Change Log).
+  - Designed and implemented Member and Ski Pass management queries and operations.
+  - Set up initial SQL schema creation scripts.
+
+- **Eduardo Hernandez**:
+
+  - Developed Query 2 (Lift Rides and Equipment Rentals).
+  - Designed, implemented, and optimized Equipment-related operations and logging functionalities.
+  - Performed thorough testing, debugging, code optimization, and documentation.
+  - Created comprehensive comments and the README documentation.
+
+- **Vickram Sullhan**:
+
+  - Developed Query 3 (Intermediate Trails and Lift Status).
+  - Designed and implemented Rental database operations, including rental status updates and returns.
+  - Designed database tables, relationships, and constraints for Trails and Lifts.
 
 ## Project Overview
 
