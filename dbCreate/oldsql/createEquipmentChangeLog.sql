@@ -8,9 +8,9 @@ CREATE TABLE EquipmentChangeLog (
     oldSize VARCHAR2(20),
     newSize VARCHAR2(20),
     oldStatus VARCHAR2(20) 
-        CHECK (oldStatus IN ('Available', 'Rented')),
+        CHECK (oldStatus IN ('Available', 'Rented', 'Lost', 'Retired', 'Archived')),
     newStatus VARCHAR2(20) 
-        CHECK (newStatus IN ('Available', 'Rented')),
+        CHECK (newStatus IN ('Available', 'Rented', 'Lost', 'Retired', 'Archived')),
     changeDate DATE DEFAULT SYSDATE
 );
 
@@ -29,3 +29,6 @@ BEGIN
     SELECT echangelog_seq.NEXTVAL INTO :NEW.EChangeId FROM dual;
 END;
 /
+
+
+

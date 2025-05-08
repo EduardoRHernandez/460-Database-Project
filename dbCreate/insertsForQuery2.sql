@@ -41,10 +41,10 @@ INSERT INTO SkiPass (memberId, purchaseDate, expirationDate, totalUses, type) VA
 INSERT INTO SkiPass (memberId, purchaseDate, expirationDate, totalUses, type) VALUES (5, SYSDATE, SYSDATE + 1, 0, '1 day');
 
 -- Rentals (some returned, some active)
-INSERT INTO Rental (passId, rentalDate, returnStatus) VALUES (1, SYSDATE - 1, 'Available');
+INSERT INTO Rental (passId, rentalDate, returnStatus) VALUES (1, SYSDATE - 1, 'Returned');
 INSERT INTO Rental (passId, rentalDate, returnStatus) VALUES (2, SYSDATE, 'Rented');
 INSERT INTO Rental (passId, rentalDate, returnStatus) VALUES (3, SYSDATE, 'Rented');
-INSERT INTO Rental (passId, rentalDate, returnStatus) VALUES (4, SYSDATE - 2, 'Available');
+INSERT INTO Rental (passId, rentalDate, returnStatus) VALUES (4, SYSDATE - 2, 'Returned');
 INSERT INTO Rental (passId, rentalDate, returnStatus) VALUES (5, SYSDATE, 'Rented');
 
 -- Equipment (some rented, some available, with size and type variation)

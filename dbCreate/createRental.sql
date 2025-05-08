@@ -2,7 +2,7 @@ CREATE TABLE Rental (
     RID NUMBER PRIMARY KEY,
     passId NUMBER NOT NULL REFERENCES SkiPass(passId) ON DELETE CASCADE,
     rentalDate DATE,
-    returnStatus VARCHAR2(20) CHECK (returnStatus IN ('Rented', 'Available'))
+    returnStatus VARCHAR2(20) CHECK (returnStatus IN ('Rented', 'Returned'))
 );
 
 CREATE SEQUENCE rental_seq START WITH 1 INCREMENT BY 1;

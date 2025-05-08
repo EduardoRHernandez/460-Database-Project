@@ -54,15 +54,15 @@ VALUES (1, TO_DATE('2025-04-15 09:00:00', 'YYYY-MM-DD HH24:MI:SS'), 'Rented');
 
 -- Member 2 (2-Day Pass) - Returned
 INSERT INTO Rental (passId, rentalDate, returnStatus)
-VALUES (2, TO_DATE('2025-02-15 12:30:00', 'YYYY-MM-DD HH24:MI:SS'), 'Available');
+VALUES (2, TO_DATE('2025-02-15 12:30:00', 'YYYY-MM-DD HH24:MI:SS'), 'Returned');
 
 -- Member 3 (4-Day Pass) - Returned
 INSERT INTO Rental (passId, rentalDate, returnStatus)
-VALUES (3, TO_DATE('2025-03-11 14:45:00', 'YYYY-MM-DD HH24:MI:SS'), 'Available');
+VALUES (3, TO_DATE('2025-03-11 14:45:00', 'YYYY-MM-DD HH24:MI:SS'), 'Returned');
 
 -- Member 4 (1-Day Pass) - Active rental (not returned)
 INSERT INTO Rental (passId, rentalDate, returnStatus)
-VALUES (4, TO_DATE('2025-01-20 08:15:00', 'YYYY-MM-DD HH24:MI:SS'), 'Rented');
+VALUES (4, TO_DATE('2025-01-20 08:15:00', 'YYYY-MM-DD HH24:MI:SS'), 'Returned');
 
 -- Equipment linked to currently active rental RID = 1
 INSERT INTO Equipment (RID, eType, eSize, eStatus)
@@ -107,6 +107,34 @@ INSERT INTO EquipmentChangeLog (
 ) VALUES (
     1, 'Ski Boots', 'Ski Boots', 'Large', 'XL', 'Available', 'Available'
 );
+
+INSERT INTO Property (name, type) VALUES ('Main Lodge', 'Lodging');
+INSERT INTO Property (name, type) VALUES ('Base Camp', 'Lodging');
+INSERT INTO Property (name, type) VALUES ('Village Center', 'Retail');
+INSERT INTO Property (name, type) VALUES ('North Peak Station', 'Lift Terminal');
+INSERT INTO Property (name, type) VALUES ('Summit Station', 'Lift Terminal');
+INSERT INTO Property (name, type) VALUES ('Snowflake Lodge', 'Dining');
+INSERT INTO Property (name, type) VALUES ('Ridge Cafe', 'Dining');
+INSERT INTO Property (name, type) VALUES ('Rental Depot', 'Equipment Rental');
+INSERT INTO Property (name, type) VALUES ('Alpine Spa', 'Wellness');
+-- Income over 3 days for several properties
+INSERT INTO Income (propertyName, incomeDate, amount) VALUES ('Main Lodge', TO_DATE('2025-01-01', 'YYYY-MM-DD'), 4500);
+INSERT INTO Income (propertyName, incomeDate, amount) VALUES ('Main Lodge', TO_DATE('2025-01-02', 'YYYY-MM-DD'), 4950);
+INSERT INTO Income (propertyName, incomeDate, amount) VALUES ('Main Lodge', TO_DATE('2025-01-03', 'YYYY-MM-DD'), 5200);
+
+INSERT INTO Income (propertyName, incomeDate, amount) VALUES ('Snowflake Lodge', TO_DATE('2025-01-01', 'YYYY-MM-DD'), 3100);
+INSERT INTO Income (propertyName, incomeDate, amount) VALUES ('Snowflake Lodge', TO_DATE('2025-01-02', 'YYYY-MM-DD'), 3300);
+INSERT INTO Income (propertyName, incomeDate, amount) VALUES ('Snowflake Lodge', TO_DATE('2025-01-03', 'YYYY-MM-DD'), 3600);
+
+INSERT INTO Income (propertyName, incomeDate, amount) VALUES ('Rental Depot', TO_DATE('2025-01-01', 'YYYY-MM-DD'), 2800);
+INSERT INTO Income (propertyName, incomeDate, amount) VALUES ('Rental Depot', TO_DATE('2025-01-02', 'YYYY-MM-DD'), 2900);
+INSERT INTO Income (propertyName, incomeDate, amount) VALUES ('Rental Depot', TO_DATE('2025-01-03', 'YYYY-MM-DD'), 3100);
+
+INSERT INTO Shuttle (name, departingProperty, destinationProperty) VALUES ('Shuttle A', 'Main Lodge', 'Village Center');
+INSERT INTO Shuttle (name, departingProperty, destinationProperty) VALUES ('Shuttle B', 'Village Center', 'Base Camp');
+INSERT INTO Shuttle (name, departingProperty, destinationProperty) VALUES ('Shuttle C', 'Rental Depot', 'North Peak Station');
+INSERT INTO Shuttle (name, departingProperty, destinationProperty) VALUES ('Shuttle D', 'Base Camp', 'Summit Station');
+INSERT INTO Shuttle (name, departingProperty, destinationProperty) VALUES ('Shuttle E', 'Ridge Cafe', 'Snowflake Lodge');
 
 
 
