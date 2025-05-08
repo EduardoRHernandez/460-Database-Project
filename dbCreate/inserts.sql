@@ -136,4 +136,4 @@ VALUES (1, 'Eagle Ridge Express', SYSDATE);
 
 @query3Inserts
 @populateTablesFirstQuery
-
+@insertsForQuery2
