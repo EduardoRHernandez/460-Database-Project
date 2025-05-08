@@ -1707,7 +1707,7 @@ public class Program4 {
 
         // Display options for equipment rental management
         System.out.println("13. Add Equipment Rental");
-        System.out.println("14. Update Equipment Rental");
+        System.out.println("14. Update Equipment Rental (Return)");
         System.out.println("15. Delete Equipment Rental");
 
         // Display exit option
