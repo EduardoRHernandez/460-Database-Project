@@ -1379,7 +1379,7 @@ public class Program4 {
         // Check if rental exists and get current status
         String checkRentalSQL = "SELECT returnStatus FROM Rental WHERE RID = ?";
         String currentStatus = null;
-
+        System.out.println("A");
         try (PreparedStatement checkStmt = conn.prepareStatement(checkRentalSQL)) {
             checkStmt.setInt(1, rentalId);
             ResultSet rs = checkStmt.executeQuery();
@@ -1390,12 +1390,13 @@ public class Program4 {
             }
 
             currentStatus = rs.getString("returnStatus");
-            if ("Returned".equalsIgnoreCase(currentStatus)) {
+            if ("Available".equalsIgnoreCase(currentStatus)) {
                 System.out.println("This equipment has already been returned.");
                 return;
             }
         }
 
+        System.out.println("B");
         conn.setAutoCommit(false);
         try {
             // Find the equipment associated with this rental first
@@ -1463,7 +1464,7 @@ public class Program4 {
         } catch (SQLException e) {
             conn.rollback();
             System.err.println("Error updating rental record: " + e.getMessage());
-            throw e;
+            return;
         } finally {
             conn.setAutoCommit(true);
         }
