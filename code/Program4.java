@@ -38,10 +38,11 @@ public class Program4 {
             ") WHERE REF_ID = ? " +
             "ORDER BY DETAIL2";
 
-    private static final String QUERY3_STRING = "SELECT t.name AS trail_name, t.category, l.name AS lift_name "
-            + "FROM Trail t JOIN Lift l ON t.name = l.name "
-            + "WHERE t.difficulty = 'intermediate' AND t.status = 'open' AND l.status = 'open' ORDER BY t.name";
-
+    private static final String QUERY3_STRING = 
+            "SELECT name AS trail_name, category, startLocation, endLocation " +
+            "FROM Trail " +
+            "WHERE difficulty = 'intermediate' AND status = 'open' " +
+            "ORDER BY name";
     private static final String QUERY4_STRING = "SELECT eq.EID as EquipmentID, eq.ETYPE as EquipmentType, eq.ESIZE as EquipmentSize, eq.ESTATUS as CurrentStatus, "
             + " log.OLDTYPE,  log.NEWTYPE, log.OLDSIZE, log.NEWSIZE, log.OLDSTATUS, log.NEWSTATUS, TO_CHAR(log.changeDate, 'YYYY-MM-DD HH24:MI:SS') AS ChangeDate "
             + "FROM EquipmentChangeLog log JOIN Equipment eq ON log.EID = eq.EID WHERE eq.EID = ? ORDER BY log.changeDate DESC";
@@ -1623,8 +1624,8 @@ public class Program4 {
      * The program will continue to run until the user chooses to exit.
      */
     public static void main(String[] args) {
-        String username = "eduardoh12";
-        String password = "a3769";
+        String username = "stevengeorge";
+        String password = "a9666";
 
         try {
             Class.forName("oracle.jdbc.OracleDriver");
@@ -1864,11 +1865,13 @@ public class Program4 {
                 try (PreparedStatement stmt = conn.prepareStatement(QUERY3_STRING);
                         ResultSet rs = stmt.executeQuery()) {
                     while (rs.next()) {
-                        System.out.printf("Trail: %s, Category: %s, Lift: %s%n",
-                                rs.getString("trail_name"), rs.getString("category"),
-                                rs.getString("lift_name"));
+                        System.out.printf("Trail: %s, Category: %s, Start: %s, End: %s%n",
+                                rs.getString("trail_name"),
+                                rs.getString("category"),
+                                rs.getString("startLocation"),
+                                rs.getString("endLocation"));
                     }
-                }
+                        }
                 break;
             case "4":
                 System.out.print("Enter equipment id: ");
