@@ -1,3 +1,21 @@
+-- -- Lifts (6 total, covering all combinations of difficulty and status)
+-- INSERT INTO Lift (name, status, openTime, closeTime, difficulty, seasonOpenDate)
+-- VALUES ('LIFTA', 'open', TO_DATE('08:00', 'HH24:MI'), TO_DATE('16:00', 'HH24:MI'), 'beginner', SYSDATE);
+
+-- INSERT INTO Lift (name, status, openTime, closeTime, difficulty, seasonOpenDate)
+-- VALUES ('LIFTB', 'open', TO_DATE('09:00', 'HH24:MI'), TO_DATE('17:00', 'HH24:MI'), 'intermediate', SYSDATE);
+
+-- INSERT INTO Lift (name, status, openTime, closeTime, difficulty, seasonOpenDate)
+-- VALUES ('LIFTC', 'closed', TO_DATE('10:00', 'HH24:MI'), TO_DATE('18:00', 'HH24:MI'), 'expert', SYSDATE);
+
+-- INSERT INTO Lift (name, status, openTime, closeTime, difficulty, seasonOpenDate)
+-- VALUES ('LIFTD', 'maintenance', TO_DATE('07:30', 'HH24:MI'), TO_DATE('15:30', 'HH24:MI'), 'beginner', SYSDATE);
+
+-- INSERT INTO Lift (name, status, openTime, closeTime, difficulty, seasonOpenDate)
+-- VALUES ('LIFTE', 'open', TO_DATE('08:30', 'HH24:MI'), TO_DATE('16:30', 'HH24:MI'), 'intermediate', SYSDATE);
+
+-- INSERT INTO Lift (name, status, openTime, closeTime, difficulty, seasonOpenDate)
+-- VALUES ('LIFTZ', 'open', TO_DATE('07:00', 'HH24:MI'), TO_DATE('17:00', 'HH24:MI'), 'expert', SYSDATE);
 
 -- Members (5 total)
 INSERT INTO Member (firstName, lastName, phone, email, dob, emgContactFName, emgContactLName, emgContactPhone)
@@ -38,70 +56,49 @@ INSERT INTO Equipment (RID, eType, eSize, eStatus) VALUES (5, 'Ski Poles', 'L', 
 INSERT INTO Equipment (eType, eSize, eStatus) VALUES ('Ski Boots', 'S', 'Lost');
 INSERT INTO Equipment (eType, eSize, eStatus) VALUES ('Helmet', 'M', 'Retired');
 
+-- -- LiftLogs (assumes liftLogId is auto-increment or you are managing IDs manually)
+-- INSERT INTO LiftLog (liftLogId, passId, liftName, liftLogDate) VALUES (1, 1, 'LIFTA', SYSDATE);
+-- INSERT INTO LiftLog (liftLogId, passId, liftName, liftLogDate) VALUES (2, 2, 'LIFTB', SYSDATE);
+-- INSERT INTO LiftLog (liftLogId, passId, liftName, liftLogDate) VALUES (3, 3, 'LIFTC', SYSDATE - 1);
+-- INSERT INTO LiftLog (liftLogId, passId, liftName, liftLogDate) VALUES (4, 4, 'LIFTE', SYSDATE - 2);
+-- INSERT INTO LiftLog (liftLogId, passId, liftName, liftLogDate) VALUES (5, 5, 'LIFTZ', SYSDATE);
 
--- Expanded and detailed Lift entries
-INSERT INTO Lift (name, status, openTime, closeTime, difficulty, seasonOpenDate)
-VALUES ('Eagle Ridge Express', 'open', TO_DATE('08:00', 'HH24:MI'), TO_DATE('16:00', 'HH24:MI'), 'intermediate', TO_DATE('2024-12-01', 'YYYY-MM-DD'));
-
-INSERT INTO Lift (name, status, openTime, closeTime, difficulty, seasonOpenDate)
-VALUES ('Glacier Summit Lift', 'maintenance', TO_DATE('09:00', 'HH24:MI'), TO_DATE('17:00', 'HH24:MI'), 'expert', TO_DATE('2024-11-25', 'YYYY-MM-DD'));
-
-INSERT INTO Lift (name, status, openTime, closeTime, difficulty, seasonOpenDate)
-VALUES ('Pine Valley Chair', 'closed', TO_DATE('07:30', 'HH24:MI'), TO_DATE('15:30', 'HH24:MI'), 'beginner', TO_DATE('2024-12-10', 'YYYY-MM-DD'));
-
-INSERT INTO Lift (name, status, openTime, closeTime, difficulty, seasonOpenDate)
-VALUES ('Snowfall Connector', 'open', TO_DATE('08:15', 'HH24:MI'), TO_DATE('16:15', 'HH24:MI'), 'intermediate', TO_DATE('2024-12-05', 'YYYY-MM-DD'));
-
-INSERT INTO Lift (name, status, openTime, closeTime, difficulty, seasonOpenDate)
-VALUES ('Bear Claw Express', 'open', TO_DATE('08:00', 'HH24:MI'), TO_DATE('16:00', 'HH24:MI'), 'expert', TO_DATE('2024-11-30', 'YYYY-MM-DD'));
-
-INSERT INTO Lift (name, status, openTime, closeTime, difficulty, seasonOpenDate)
-VALUES ('Morning Glory Lift', 'open', TO_DATE('07:45', 'HH24:MI'), TO_DATE('16:30', 'HH24:MI'), 'beginner', TO_DATE('2024-12-03', 'YYYY-MM-DD'));
-
-INSERT INTO Lift (name, status, openTime, closeTime, difficulty, seasonOpenDate)
-VALUES ('Crystal Bowl Tram', 'maintenance', TO_DATE('09:30', 'HH24:MI'), TO_DATE('17:30', 'HH24:MI'), 'expert', TO_DATE('2024-11-28', 'YYYY-MM-DD'));
-
-INSERT INTO Lift (name, status, openTime, closeTime, difficulty, seasonOpenDate)
-VALUES ('Aspen Run Chair', 'open', TO_DATE('08:30', 'HH24:MI'), TO_DATE('16:45', 'HH24:MI'), 'intermediate', TO_DATE('2024-12-07', 'YYYY-MM-DD'));
+-- COMMIT;
 
 
--- Expanded LiftLog entries
+-- Lift logs for various passIds
 INSERT INTO LiftLog (passId, liftName, liftLogDate)
-VALUES (1, 'Eagle Ridge Express', SYSDATE);
+VALUES (1, 'Alpine Cabin', SYSDATE);
 
 INSERT INTO LiftLog (passId, liftName, liftLogDate)
-VALUES (1, 'Snowfall Connector', SYSDATE - 1);
+VALUES (1, 'Snowflake Skyway', SYSDATE - 1);
 
 INSERT INTO LiftLog (passId, liftName, liftLogDate)
-VALUES (2, 'Bear Claw Express', SYSDATE);
+VALUES (2, 'Crystal Flyer', SYSDATE);
 
 INSERT INTO LiftLog (passId, liftName, liftLogDate)
-VALUES (2, 'Morning Glory Lift', SYSDATE - 2);
+VALUES (2, 'Morning Cabin', SYSDATE - 2);
 
 INSERT INTO LiftLog (passId, liftName, liftLogDate)
-VALUES (3, 'Aspen Run Chair', SYSDATE);
+VALUES (3, 'Aspen Gondola', SYSDATE);
 
 INSERT INTO LiftLog (passId, liftName, liftLogDate)
-VALUES (3, 'Crystal Bowl Tram', SYSDATE - 1);
+VALUES (3, 'Eagle Tram', SYSDATE - 1);
 
 INSERT INTO LiftLog (passId, liftName, liftLogDate)
-VALUES (4, 'Pine Valley Chair', SYSDATE);
+VALUES (4, 'Pine Tram', SYSDATE);
 
 INSERT INTO LiftLog (passId, liftName, liftLogDate)
-VALUES (5, 'Glacier Summit Lift', SYSDATE - 1);
+VALUES (5, 'Glacier Chair', SYSDATE - 1);
 
-
--- Lift logs for passId = 1 across multiple lifts and days
-INSERT INTO LiftLog (passId, liftName, liftLogDate) VALUES (1, 'Eagle Ridge Express', SYSDATE);
-INSERT INTO LiftLog (passId, liftName, liftLogDate) VALUES (1, 'Eagle Ridge Express', SYSDATE - 1);
-INSERT INTO LiftLog (passId, liftName, liftLogDate) VALUES (1, 'Snowfall Connector', SYSDATE);
-INSERT INTO LiftLog (passId, liftName, liftLogDate) VALUES (1, 'Bear Claw Express', SYSDATE - 2);
-INSERT INTO LiftLog (passId, liftName, liftLogDate) VALUES (1, 'Morning Glory Lift', SYSDATE - 2);
-INSERT INTO LiftLog (passId, liftName, liftLogDate) VALUES (1, 'Aspen Run Chair', SYSDATE - 3);
-INSERT INTO LiftLog (passId, liftName, liftLogDate) VALUES (1, 'Crystal Bowl Tram', SYSDATE - 3);
-INSERT INTO LiftLog (passId, liftName, liftLogDate) VALUES (1, 'Pine Valley Chair', SYSDATE - 4);
-INSERT INTO LiftLog (passId, liftName, liftLogDate) VALUES (1, 'Glacier Summit Lift', SYSDATE - 4);
-INSERT INTO LiftLog (passId, liftName, liftLogDate) VALUES (1, 'Bear Claw Express', SYSDATE - 5);
-INSERT INTO LiftLog (passId, liftName, liftLogDate) VALUES (1, 'Eagle Ridge Express', SYSDATE - 6);
-
-COMMIT;
+INSERT INTO LiftLog (passId, liftName, liftLogDate) VALUES (1, 'Alpine Cabin', SYSDATE);
+INSERT INTO LiftLog (passId, liftName, liftLogDate) VALUES (1, 'Alpine Cabin', SYSDATE - 1);
+INSERT INTO LiftLog (passId, liftName, liftLogDate) VALUES (1, 'Snowflake Skyway', SYSDATE);
+INSERT INTO LiftLog (passId, liftName, liftLogDate) VALUES (1, 'Crystal Flyer', SYSDATE - 2);
+INSERT INTO LiftLog (passId, liftName, liftLogDate) VALUES (1, 'Morning Cabin', SYSDATE - 2);
+INSERT INTO LiftLog (passId, liftName, liftLogDate) VALUES (1, 'Aspen Gondola', SYSDATE - 3);
+INSERT INTO LiftLog (passId, liftName, liftLogDate) VALUES (1, 'Eagle Tram', SYSDATE - 3);
+INSERT INTO LiftLog (passId, liftName, liftLogDate) VALUES (1, 'Pine Tram', SYSDATE - 4);
+INSERT INTO LiftLog (passId, liftName, liftLogDate) VALUES (1, 'Glacier Chair', SYSDATE - 4);
+INSERT INTO LiftLog (passId, liftName, liftLogDate) VALUES (1, 'Crystal Flyer', SYSDATE - 5);
+INSERT INTO LiftLog (passId, liftName, liftLogDate) VALUES (1, 'Alpine Cabin', SYSDATE - 6);

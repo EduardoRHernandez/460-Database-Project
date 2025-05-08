@@ -23,3 +23,6 @@ INSERT INTO LessonPurchase (memberId, lessonId, totalSessions, remainingSessions
 INSERT INTO LessonPurchase (memberId, lessonId, totalSessions, remainingSessions, pricePerSession) VALUES (23, 23, 12, 5, 90);
 INSERT INTO LessonPurchase (memberId, lessonId, totalSessions, remainingSessions, pricePerSession) VALUES (24, 24, 6, 0, 110);
 INSERT INTO LessonPurchase (memberId, lessonId, totalSessions, remainingSessions, pricePerSession) VALUES (25, 25, 15, 10, 95);
+
+INSERT INTO LessonPurchase (memberId, lessonId, totalSessions, remainingSessions, pricePerSession) VALUES (1, 1, 10, 10, 100);
+INSERT INTO LessonPurchase (memberId, lessonId, totalSessions, remainingSessions, pricePerSession) VALUES (1, 1, 10, 0, 100);
