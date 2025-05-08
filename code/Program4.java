@@ -168,10 +168,21 @@ public class Program4 {
         }
 
         System.out.println("Select attribute to update:");
-        System.out.println("1. eStatus");
-        System.out.println("2. eType");
-        System.out.println("3. eSize");
-        int choice = sc.nextInt();
+        System.out.println("1. eStatus ('Available', 'Rented', 'Lost', 'Retired', 'Archived')");
+        System.out.println("2. eType (Ski Boots, Ski Poles, Skis, Snowboard, Helmet)");
+        System.out.println("3. eSize:");
+        System.out.println("   - Ski Boots: sizes 4.0 to 14.0 (including half sizes)");
+        System.out.println("   - Ski Poles: lengths 100cm to 140cm (integers)");
+        System.out.println("   - Skis: lengths 115cm to 200cm (integers)");
+        System.out.println("   - Snowboard: lengths 90cm to 178cm (integers)");
+        System.out.println("   - Helmet: use general size labels (e.g., S, M, L)");
+        int choice = 0;
+        try{
+            choice = sc.nextInt();
+        } catch (Exception e){
+            System.out.println("Invalid input");
+            return;
+        }
         sc.nextLine(); // consume newline
 
         String updateSQL;
@@ -210,6 +221,7 @@ public class Program4 {
         conn.setAutoCommit(false);
         int rowsAffected;
 
+        try{
         // Execute the update statement
         try (PreparedStatement pstmt = conn.prepareStatement(updateSQL)) {
             pstmt.setString(1, updateValue);
@@ -232,7 +244,11 @@ public class Program4 {
             System.out.println("No equipment item found with the provided EID.");
         }
         conn.setAutoCommit(true); // Reset auto-commit to true
+        } catch (Exception e){
+            System.out.println("Invalid input");
+        }
     }
+
 
     /**
      * Archives an equipment item by updating its status to 'Archived'.
@@ -327,19 +343,23 @@ public class Program4 {
      * @param pricePerSession   The price per session.
      * @throws SQLException if a database access error occurs.
      */
-    private static void addLessonPurchase(Connection conn, int orderId, int memberId, int lessonId, int totalSessions,
+    private static void addLessonPurchase(Connection conn, int memberId, int lessonId, int totalSessions,
             int remainingSessions, double pricePerSession) throws SQLException {
-        String insertSQL = "INSERT INTO LessonPurchase (orderId, memberId, lessonId, totalSessions, remainingSessions, pricePerSession) VALUES (?, ?, ?, ?, ?, ?)";
+
+        try{        
+        String insertSQL = "INSERT INTO LessonPurchase (memberId, lessonId, totalSessions, remainingSessions, pricePerSession) VALUES (?, ?, ?, ?, ?)";
         try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
-            pstmt.setInt(1, orderId);
-            pstmt.setInt(2, memberId);
-            pstmt.setInt(3, lessonId);
-            pstmt.setInt(4, totalSessions);
-            pstmt.setInt(5, remainingSessions);
-            pstmt.setDouble(6, pricePerSession);
+            pstmt.setInt(1, memberId);
+            pstmt.setInt(2, lessonId);
+            pstmt.setInt(3, totalSessions);
+            pstmt.setInt(4, remainingSessions);
+            pstmt.setDouble(5, pricePerSession);
             int rowsAffected = pstmt.executeUpdate();
             System.out.println(
                     rowsAffected > 0 ? "Lesson purchase added successfully." : "Failed to add lesson purchase.");
+        }
+        } catch (Exception e){
+            System.out.println("Failed to add lesson purchase");
         }
     }
 
@@ -384,7 +404,7 @@ public class Program4 {
             if (rowsAffected > 0) {
                 System.out.println("Lesson purchases deleted successfully");
             } else {
-                System.out.println("No eligible lesson purchase found to delete (must have zero sessions used)."
+                System.out.println("No eligible lesson purchase found to delete (must have zero or all essions used)."
                         + "\nAccount cannot be deleted. Admin Override? y/n");
                 String val = input.nextLine();
                 if (val.compareTo("y") == 0) {
@@ -1275,7 +1295,7 @@ public class Program4 {
             }
 
             String status = rs.getString("eStatus");
-            if (!status.equalsIgnoreCase("Available")) {
+            if (!status.equalsIgnoreCase("Returned")) {
                 System.out.println("Error: The equipment is not available for rental. Current status: " + status);
                 return;
             }
@@ -1436,7 +1456,7 @@ public class Program4 {
             findPstmt.close();
 
             // Now update the rental status
-            String updateRentalSQL = "UPDATE Rental SET returnStatus = 'Available' WHERE RID = ?";
+            String updateRentalSQL = "UPDATE Rental SET returnStatus = 'Returned' WHERE RID = ?";
             PreparedStatement pstmt = conn.prepareStatement(updateRentalSQL);
             pstmt.setInt(1, rentalId);
             int rowsAffected = pstmt.executeUpdate();
@@ -1683,15 +1703,17 @@ public class Program4 {
         // Display menu header
         System.out.println("\nLesson Purchase Management");
 
-        // Display options for lesson purchase management
-        System.out.println("1. Add Lesson Purchase");
-        System.out.println("2. Update Lesson Purchase");
-        System.out.println("3. Delete Lesson Purchase");
+
 
         // Display options for member management
-        System.out.println("4. Add Member");
-        System.out.println("5. Update Member");
-        System.out.println("6. Delete Member");
+        System.out.println("1. Add Member");
+        System.out.println("2. Update Member");
+        System.out.println("3. Delete Member");
+
+        // Display options for lesson purchase management
+        System.out.println("4. Add Lesson Purchase");
+        System.out.println("5. Update Lesson Purchase");
+        System.out.println("6. Delete Lesson Purchase");
 
         // Display options for ski pass management
         System.out.println("7. Add Ski Pass");
@@ -1733,8 +1755,18 @@ public class Program4 {
     private static void handleDBQueries(Connection conn, Scanner input, String choice) throws SQLException {
         switch (choice) {
             case "1":
-                System.out.print("Enter Order ID: ");
-                int orderId = Integer.parseInt(input.nextLine());
+                addMember(conn, input);
+                break;
+            case "2":
+                updateMember(conn, input);
+                break;
+            case "3":
+                deleteMember(conn, input);
+                break;
+            case "4":
+                try{
+                // System.out.print("Enter Order ID: ");
+                // int orderId = Integer.parseInt(input.nextLine());
                 System.out.print("Enter Member ID: ");
                 int memberId = Integer.parseInt(input.nextLine());
                 System.out.print("Enter Lesson ID: ");
@@ -1745,29 +1777,34 @@ public class Program4 {
                 int remainingSessions = Integer.parseInt(input.nextLine());
                 System.out.print("Enter Price per Session: ");
                 double pricePerSession = Double.parseDouble(input.nextLine());
-                addLessonPurchase(conn, orderId, memberId, lessonId, totalSessions, remainingSessions,
+                addLessonPurchase(conn, memberId, lessonId, totalSessions, remainingSessions,
                         pricePerSession);
+                } catch (NumberFormatException e) {
+                    System.out.println("Invalid input");
+                    return;
+                }
                 break;
-            case "2":
+            case "5":
+                try{
                 System.out.print("Enter Order ID to update: ");
                 int updateOrderId = Integer.parseInt(input.nextLine());
                 System.out.print("Enter new Remaining Sessions: ");
                 int newRemainingSessions = Integer.parseInt(input.nextLine());
                 updateLessonPurchase(conn, updateOrderId, newRemainingSessions);
+                } catch (NumberFormatException e) {
+                    System.out.println("Invalid input");
+                    return;
+                }
                 break;
-            case "3":
+            case "6":
+                try{
                 System.out.print("Enter Order ID to delete: ");
                 int deleteOrderId = Integer.parseInt(input.nextLine());
                 deleteLessonPurchase(conn, deleteOrderId, input);
-                break;
-            case "4":
-                addMember(conn, input);
-                break;
-            case "5":
-                updateMember(conn, input);
-                break;
-            case "6":
-                deleteMember(conn, input);
+                } catch (NumberFormatException e) {
+                    System.out.println("Invalid input");
+                    return;
+                }
                 break;
             case "7":
                 addSkiPass(conn, input);
@@ -1779,28 +1816,59 @@ public class Program4 {
                 deleteSkiPass(conn, input);
                 break;
             case "10":
-                System.out.println("Please enter the following information:");
-                System.out.println("RID, eType, eSize, eStatus [enter 0 for null RID]");
+                try{
+                System.out.println("\n\nPlease enter the following information as a comma separated list:");
+                System.out.println("RID, eType, eSize, eStatus [enter 0 for null RID]\n\n");
+                System.out.println("eSize:");
+                System.out.println("   - Ski Boots: sizes 4.0 to 14.0 (including half sizes)");
+                System.out.println("   - Ski Poles: lengths 100cm to 140cm (integers)");
+                System.out.println("   - Skis: lengths 115cm to 200cm (integers)");
+                System.out.println("   - Snowboard: lengths 90cm to 178cm (integers)");
+                System.out.println("   - Helmet: use general size labels (e.g., S, M, L)\n\n");
+                System.out.println("eType (Ski Boots, Ski Poles, Skis, Snowboard, Helmet)");
+                System.out.println("eStatus ('Available', 'Rented', 'Lost', 'Retired', 'Archived')");
+
+
                 String equipment = input.nextLine();
                 String[] parts = equipment.split(",");
+
+                if (parts.length < 4) {
+                    System.out.println("Invalid input: Please provide all 4 fields separated by commas.");
+                    return;
+                }
                 int rid = Integer.parseInt(parts[0].trim());
                 String etype = parts[1].trim();
                 String esize = parts[2].trim();
                 String estatus = parts[3].trim();
                 insertEquipmentItem(conn, rid, etype, esize, estatus);
+                } catch (Exception e) {
+                    System.out.println("Invalid input");
+                    return;
+                }
                 break;
             case "11":
+
                 System.out.println("Enter Equipment ID to update:");
+                try{
                 int eidUpdate = Integer.parseInt(input.nextLine().trim());
                 updateEquipmentItem(conn, eidUpdate, input);
+                } catch (NumberFormatException e) {
+                    System.out.println("Invalid input");
+                    return;
+                }
                 break;
             case "12":
                 System.out.println("Please enter the following information:");
                 System.out.println("EID");
+                try{
                 String equipmentDelete = input.nextLine();
                 String[] partsDelete = equipmentDelete.split(",");
                 int eidDelete = Integer.parseInt(partsDelete[0].trim());
                 archiveEquipmentItem(conn, eidDelete);
+                } catch (NumberFormatException e) {
+                    System.out.println("Invalid input");
+                    return;
+                }
                 break;
             case "13":
                 addEquipmentRental(conn, input);
