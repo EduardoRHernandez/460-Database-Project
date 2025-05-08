@@ -138,3 +138,5 @@ INSERT INTO EquipmentChangeLog (
 @populateTablesFirstQuery
 
 @insertsForQuery2
+
+commit;
