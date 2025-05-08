@@ -1379,7 +1379,6 @@ public class Program4 {
         // Check if rental exists and get current status
         String checkRentalSQL = "SELECT returnStatus FROM Rental WHERE RID = ?";
         String currentStatus = null;
-        System.out.println("A");
         try (PreparedStatement checkStmt = conn.prepareStatement(checkRentalSQL)) {
             checkStmt.setInt(1, rentalId);
             ResultSet rs = checkStmt.executeQuery();
@@ -1396,7 +1395,6 @@ public class Program4 {
             }
         }
 
-        System.out.println("B");
         conn.setAutoCommit(false);
         try {
             // Find the equipment associated with this rental first
