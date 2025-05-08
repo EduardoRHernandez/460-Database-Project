@@ -2,7 +2,11 @@
 /***
  * File: Program4.java
  * Authors: Zachary Astrowsky, Steven George, Eduardo Hernandez, Vickram Sullhan
- * Description: 
+ * Description: A JDBC-based Java client-server application managing ski resort operations. It allows CRUD operations
+ * on members, ski passes, equipment rentals, and lesson purchases. The program supports detailed logging
+ * of equipment changes and rental history. It also executes predefined queries such as retrieving member
+ * lesson details, ski pass activities (lift rides and rentals), available intermediate trails, and
+ * equipment change logs.
  */
 
 import java.sql.*;
@@ -409,7 +413,6 @@ public class Program4 {
      * @param input the scanner to read user input
      * @throws SQLException if a database error occurs
      */
-
     private static void runQuery1(Connection conn, Scanner input) throws SQLException {
         System.out.print("Enter member first name: ");
         String firstName = input.nextLine().trim();
@@ -1198,7 +1201,9 @@ public class Program4 {
     private static void addEquipmentRental(Connection conn, Scanner input) throws SQLException {
         // SQL for selecting current equipment details
         String selectSql = "SELECT eType, eSize, eStatus FROM Equipment WHERE EID = ?";
-        String oldType, oldSize, oldStatus;
+        String oldType = null;
+        String oldSize = null;
+        String oldStatus = null;
 
         System.out.println("Enter Ski Pass ID:");
         String passIdString = input.nextLine();
@@ -1380,7 +1385,6 @@ public class Program4 {
                 PreparedStatement sel = conn.prepareStatement(selectSql);
                 sel.setInt(1, rentalId); // Use rental ID to find equipment
                 ResultSet ers = sel.executeQuery();
-
                 if (ers.next()) {
                     oldType = ers.getString("eType");
                     oldSize = ers.getString("eSize");
@@ -1642,6 +1646,8 @@ public class Program4 {
             System.err.println("SQL Error: " + e.getMessage());
         }
     }
+
+    // Main helpers
 
     /**
      * Displays the database management menu to the user.
